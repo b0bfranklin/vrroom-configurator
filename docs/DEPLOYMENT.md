@@ -49,7 +49,7 @@ docker-compose --version
 
 **Linux/macOS:**
 ```bash
-git clone https://github.com/yourusername/vrroom-configurator.git
+git clone https://github.com/bobfranklin/vrroom-configurator.git
 cd vrroom-configurator
 chmod +x start-unix.sh
 ./start-unix.sh
@@ -57,7 +57,7 @@ chmod +x start-unix.sh
 
 **Windows:**
 ```cmd
-git clone https://github.com/yourusername/vrroom-configurator.git
+git clone https://github.com/b0bfranklin/vrroom-configurator.git
 cd vrroom-configurator
 start-windows.bat
 ```
@@ -72,7 +72,7 @@ Open your browser to **http://localhost:5000**
 ### Option B: Docker (Recommended for servers)
 
 ```bash
-git clone https://github.com/yourusername/vrroom-configurator.git
+git clone https://github.com/b0bfranklin/vrroom-configurator.git
 cd vrroom-configurator
 docker-compose up -d
 ```
@@ -87,7 +87,7 @@ Open your browser to **http://localhost:5000**
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/vrroom-configurator.git
+   git clone https://github.com/b0bfranklin/vrroom-configurator.git
    cd vrroom-configurator
    ```
 
@@ -176,7 +176,7 @@ sudo systemctl start vrroom-configurator
 
 1. **Clone and start**
    ```bash
-   git clone https://github.com/yourusername/vrroom-configurator.git
+   git clone https://github.com/b0bfranklin/vrroom-configurator.git
    cd vrroom-configurator
    docker-compose up -d
    ```
@@ -416,3 +416,4 @@ docker-compose down
 docker-compose build --no-cache
 docker-compose up -d
 ```
+
