@@ -1698,6 +1698,12 @@
                         ${device.gain !== undefined ? `<dt>Gain</dt><dd>${device.gain}</dd>` : ''}
                         ${device.acoustically_transparent !== undefined ? `<dt>Acoustically Transparent</dt><dd>${device.acoustically_transparent ? 'Yes' : 'No'}</dd>` : ''}
                         ${device.ambient_light_rejecting !== undefined ? `<dt>ALR</dt><dd>${device.ambient_light_rejecting ? 'Yes' : 'No'}</dd>` : ''}
+                        ${device.viewing_angle ? `<dt>Viewing Angle</dt><dd>${device.viewing_angle}°</dd>` : ''}
+                        ${device.frame_width_mm ? `<dt>Frame Width</dt><dd>${device.frame_width_mm}mm</dd>` : ''}
+                        ${device.frame_finish ? `<dt>Frame Finish</dt><dd>${device.frame_finish}</dd>` : ''}
+                        ${device.tension_system ? `<dt>Tension</dt><dd>${device.tension_system}</dd>` : ''}
+                        ${device.resolution_support ? `<dt>Resolution</dt><dd>${device.resolution_support}</dd>` : ''}
+                        ${device.image_area_mm ? `<dt>Image Area</dt><dd>${device.image_area_mm}</dd>` : ''}
                         ${device.max_channels ? `<dt>Max Channels</dt><dd>${device.max_channels}</dd>` : ''}
                         ${device.room_correction ? `<dt>Room Correction</dt><dd>${device.room_correction}</dd>` : ''}
                         ${device.light_source ? `<dt>Light Source</dt><dd>${device.light_source}</dd>` : ''}
