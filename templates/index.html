@@ -534,6 +534,31 @@
             color: var(--text-primary);
         }
 
+        .form-group input[type="text"] {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 1em;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input[type="text"]:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .form-group input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        .form-group input[type="text"]::placeholder {
+            color: var(--text-secondary);
+        }
+
         .goals-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -890,16 +915,52 @@
         <!-- Config Analyzer Tab -->
         <div id="analyzer" class="tab-content">
             <div class="card">
-                <h2>Upload Vrroom Configuration</h2>
+                <h2>Connect to Vrroom</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                    Export your config from Vrroom web interface (CONFIG &rarr; EXPORT) and upload the JSON file.
+                    Connect directly to your Vrroom by IP address to fetch the current configuration.
+                </p>
+                <div class="setup-form" style="grid-template-columns: 1fr auto auto; gap: 12px; align-items: end;">
+                    <div class="form-group">
+                        <label for="vrroom-ip">Vrroom IP Address</label>
+                        <input type="text" id="vrroom-ip" placeholder="192.168.1.100"
+                               style="background: var(--bg-tertiary); color: var(--text-primary);
+                                      border: 1px solid var(--border-color); border-radius: 6px;
+                                      padding: 10px 12px; font-size: 1em;">
+                    </div>
+                    <div class="form-group">
+                        <label for="vrroom-port">Port</label>
+                        <input type="text" id="vrroom-port" placeholder="2222" value="2222"
+                               style="background: var(--bg-tertiary); color: var(--text-primary);
+                                      border: 1px solid var(--border-color); border-radius: 6px;
+                                      padding: 10px 12px; font-size: 1em; width: 80px;">
+                    </div>
+                    <button class="btn" id="connect-vrroom-btn" onclick="connectToVrroom()">
+                        Connect
+                    </button>
+                </div>
+                <div id="vrroom-connection-status" style="margin-top: 12px; display: none;"></div>
+            </div>
+
+            <div class="card" id="vrroom-live-config" style="display: none;">
+                <h2>Live Configuration</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Current settings fetched from your Vrroom device.
+                </p>
+                <div id="vrroom-status-info" style="margin-bottom: 16px;"></div>
+                <div class="device-grid" id="vrroom-settings-grid"></div>
+            </div>
+
+            <div class="card">
+                <h2>Or Upload Configuration File</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Export your config from Vrroom web interface (CONFIG &rarr; EXPORT) and upload the file.
                 </p>
                 <div class="dropzone" id="config-dropzone">
                     <div class="dropzone-icon">&#128196;</div>
-                    <p>Drag & drop your Vrroom config JSON here</p>
+                    <p>Drag & drop your Vrroom config here</p>
                     <p>or click to browse</p>
-                    <span class="file-types">Accepts: .json files</span>
-                    <input type="file" id="config-input" accept=".json">
+                    <span class="file-types">Accepts: .json, .txt files</span>
+                    <input type="file" id="config-input" accept=".json,.txt">
                 </div>
             </div>
 
@@ -1141,6 +1202,125 @@
                 }
             });
         }
+
+        // =================================================================
+        // Vrroom IP Connection
+        // =================================================================
+        async function connectToVrroom() {
+            const ipInput = document.getElementById('vrroom-ip');
+            const portInput = document.getElementById('vrroom-port');
+            const connectBtn = document.getElementById('connect-vrroom-btn');
+            const statusDiv = document.getElementById('vrroom-connection-status');
+            const liveConfigCard = document.getElementById('vrroom-live-config');
+
+            const ip = ipInput.value.trim();
+            const port = portInput.value.trim() || '2222';
+
+            if (!ip) {
+                statusDiv.innerHTML = '<span style="color: var(--accent-red);">Please enter an IP address</span>';
+                statusDiv.style.display = 'block';
+                return;
+            }
+
+            // Show connecting status
+            connectBtn.disabled = true;
+            connectBtn.textContent = 'Connecting...';
+            statusDiv.innerHTML = '<span style="color: var(--accent-blue);">Connecting to ' + ip + ':' + port + '...</span>';
+            statusDiv.style.display = 'block';
+            liveConfigCard.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/vrroom/connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip_address: ip, port: parseInt(port) })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.innerHTML = '<span style="color: var(--accent-green);">Connected successfully!</span>';
+                    displayLiveConfig(data);
+                    // Save IP for future use
+                    localStorage.setItem('vrroom_ip', ip);
+                    localStorage.setItem('vrroom_port', port);
+                } else {
+                    statusDiv.innerHTML = '<span style="color: var(--accent-red);">Connection failed: ' + (data.error || 'Unknown error') + '</span>';
+                }
+            } catch (err) {
+                statusDiv.innerHTML = '<span style="color: var(--accent-red);">Connection error: ' + err.message + '</span>';
+            }
+
+            connectBtn.disabled = false;
+            connectBtn.textContent = 'Connect';
+        }
+
+        function displayLiveConfig(data) {
+            const liveConfigCard = document.getElementById('vrroom-live-config');
+            const statusInfo = document.getElementById('vrroom-status-info');
+            const settingsGrid = document.getElementById('vrroom-settings-grid');
+
+            liveConfigCard.style.display = 'block';
+
+            // Display status info
+            const status = data.status || {};
+            const analysis = data.analysis || {};
+            statusInfo.innerHTML = `
+                <div class="file-info">
+                    <div class="file-info-item">
+                        <div class="file-info-label">EDID Mode</div>
+                        <div class="file-info-value">${analysis.edid_mode || 'Unknown'}</div>
+                    </div>
+                    <div class="file-info-item">
+                        <div class="file-info-label">Dolby Vision</div>
+                        <div class="file-info-value">${analysis.dv_enabled ? 'Enabled' : 'Disabled'}</div>
+                    </div>
+                    <div class="file-info-item">
+                        <div class="file-info-label">HDR</div>
+                        <div class="file-info-value">${analysis.hdr_enabled ? 'Enabled' : 'Disabled'}</div>
+                    </div>
+                    <div class="file-info-item">
+                        <div class="file-info-label">CEC</div>
+                        <div class="file-info-value">${analysis.cec_enabled ? 'Enabled' : 'Disabled'}</div>
+                    </div>
+                    <div class="file-info-item">
+                        <div class="file-info-label">Settings Fetched</div>
+                        <div class="file-info-value">${analysis.settings_count || 0}</div>
+                    </div>
+                </div>
+                ${status.rx0 ? `<div style="margin-top: 12px; padding: 12px; background: var(--bg-tertiary); border-radius: 6px;">
+                    <strong>Input Signal (RX0):</strong> <code style="color: var(--accent-green);">${status.rx0}</code>
+                </div>` : ''}
+                ${status.tx0 ? `<div style="margin-top: 8px; padding: 12px; background: var(--bg-tertiary); border-radius: 6px;">
+                    <strong>Output Signal (TX0):</strong> <code style="color: var(--accent-green);">${status.tx0}</code>
+                </div>` : ''}
+            `;
+
+            // Display all settings in a grid
+            const settings = data.settings || {};
+            const settingKeys = Object.keys(settings);
+            if (settingKeys.length > 0) {
+                settingsGrid.innerHTML = settingKeys.map(key => `
+                    <div class="device-card">
+                        <h4 style="font-size: 0.9em; color: var(--text-secondary);">${key}</h4>
+                        <div style="font-size: 1.1em; color: var(--accent-green); font-family: monospace;">${settings[key]}</div>
+                    </div>
+                `).join('');
+            } else {
+                settingsGrid.innerHTML = '<p style="color: var(--text-secondary);">No settings retrieved</p>';
+            }
+        }
+
+        // Load saved Vrroom IP on page load
+        (function loadSavedVrroomIP() {
+            const savedIP = localStorage.getItem('vrroom_ip');
+            const savedPort = localStorage.getItem('vrroom_port');
+            if (savedIP) {
+                document.getElementById('vrroom-ip').value = savedIP;
+            }
+            if (savedPort) {
+                document.getElementById('vrroom-port').value = savedPort;
+            }
+        })();
 
         // =================================================================
         // Config analyzer

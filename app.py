@@ -7,6 +7,7 @@ Optimizes configs for minimal HDMI handshake delays (bonk) and LLDV support
 import copy
 import json
 import os
+import socket
 import subprocess
 import shutil
 import uuid
@@ -21,6 +22,144 @@ app.config['EXPORT_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__fil
 # Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
+
+
+# =============================================================================
+# Vrroom IP Connection
+# =============================================================================
+
+class VrroomConnection:
+    """Connect to Vrroom via TCP/Telnet to query settings."""
+
+    DEFAULT_PORT = 2222
+    TIMEOUT = 5  # seconds
+
+    # Settings to query from Vrroom
+    SETTINGS_TO_QUERY = [
+        "opmode", "insel", "dhcp", "ipaddr", "autosw",
+        "edidmode", "edidfrlflag", "edidfrlmode", "edidvrrflag", "edidallmflag",
+        "edidhdrflag", "edidhdrmode", "ediddvflag", "ediddvmode",
+        "edidtruehdflag", "edidtruehdmode", "edidddflag", "edidddplusflag",
+        "ediddtsflag", "ediddtshdflag", "edidpcmflag", "edidpcmchmode",
+        "hdcp", "hdrcustom", "hdrdisable", "cec",
+        "earcforce", "jvcmacro", "oled", "oledfade"
+    ]
+
+    STATUS_QUERIES = ["rx0", "tx0", "tx1", "tx0sink", "tx1sink", "aud0", "audout"]
+
+    def __init__(self, ip_address, port=None):
+        self.ip_address = ip_address
+        self.port = port or self.DEFAULT_PORT
+        self.socket = None
+
+    def connect(self):
+        """Establish TCP connection to Vrroom."""
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.settimeout(self.TIMEOUT)
+            self.socket.connect((self.ip_address, self.port))
+            return True
+        except socket.timeout:
+            raise ConnectionError(f"Connection to {self.ip_address}:{self.port} timed out")
+        except socket.error as e:
+            raise ConnectionError(f"Failed to connect to {self.ip_address}:{self.port}: {e}")
+
+    def disconnect(self):
+        """Close the connection."""
+        if self.socket:
+            try:
+                self.socket.close()
+            except Exception:
+                pass
+            self.socket = None
+
+    def send_command(self, command):
+        """Send a command and receive response."""
+        if not self.socket:
+            raise ConnectionError("Not connected")
+
+        try:
+            # IP mode doesn't need #vrroom prefix
+            cmd = f"{command}\r\n"
+            self.socket.sendall(cmd.encode('utf-8'))
+
+            # Read response
+            response = b""
+            while True:
+                try:
+                    chunk = self.socket.recv(1024)
+                    if not chunk:
+                        break
+                    response += chunk
+                    # Check if we have a complete response (ends with \r\n)
+                    if response.endswith(b"\r\n"):
+                        break
+                except socket.timeout:
+                    break
+
+            return response.decode('utf-8').strip()
+        except socket.error as e:
+            raise ConnectionError(f"Communication error: {e}")
+
+    def get_setting(self, setting):
+        """Query a single setting."""
+        response = self.send_command(f"get {setting}")
+        # Response format is typically "setting value" or just "value"
+        parts = response.split()
+        if len(parts) >= 2:
+            return parts[-1]  # Return last part as value
+        return response
+
+    def get_all_settings(self):
+        """Query all relevant settings from Vrroom."""
+        settings = {}
+
+        for setting in self.SETTINGS_TO_QUERY:
+            try:
+                value = self.get_setting(setting)
+                if value and value.lower() not in ["error", "unknown"]:
+                    settings[setting] = value
+            except Exception:
+                continue  # Skip settings that fail
+
+        return settings
+
+    def get_status(self):
+        """Get current signal status."""
+        status = {}
+
+        for query in self.STATUS_QUERIES:
+            try:
+                response = self.send_command(f"get status {query}")
+                if response:
+                    status[query] = response
+            except Exception:
+                continue
+
+        return status
+
+    def fetch_config(self):
+        """Fetch complete configuration from Vrroom."""
+        try:
+            self.connect()
+            settings = self.get_all_settings()
+            status = self.get_status()
+
+            return {
+                "success": True,
+                "ip_address": self.ip_address,
+                "settings": settings,
+                "status": status,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "ip_address": self.ip_address
+            }
+        finally:
+            self.disconnect()
 
 
 # =============================================================================
@@ -1549,6 +1688,101 @@ def analyze_config():
         results["download_filename"] = filename
 
     return jsonify(results)
+
+
+@app.route("/api/vrroom/connect", methods=["POST"])
+def vrroom_connect():
+    """Connect to Vrroom by IP and fetch current configuration."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    ip_address = data.get("ip_address", "").strip()
+    port = data.get("port", VrroomConnection.DEFAULT_PORT)
+
+    if not ip_address:
+        return jsonify({"error": "IP address is required"}), 400
+
+    # Basic IP validation
+    parts = ip_address.split(".")
+    if len(parts) != 4:
+        return jsonify({"error": "Invalid IP address format"}), 400
+    try:
+        for part in parts:
+            num = int(part)
+            if num < 0 or num > 255:
+                raise ValueError()
+    except ValueError:
+        return jsonify({"error": "Invalid IP address"}), 400
+
+    try:
+        port = int(port)
+    except (ValueError, TypeError):
+        port = VrroomConnection.DEFAULT_PORT
+
+    connection = VrroomConnection(ip_address, port)
+    result = connection.fetch_config()
+
+    if result["success"]:
+        # Also run analysis on the fetched settings
+        settings = result.get("settings", {})
+        status = result.get("status", {})
+
+        # Build a config-like structure for analysis
+        config_data = {**settings}
+
+        # Add status info
+        result["analysis"] = {
+            "settings_count": len(settings),
+            "status_count": len(status),
+            "edid_mode": settings.get("edidmode", "unknown"),
+            "dv_enabled": settings.get("ediddvflag", "off") == "on",
+            "hdr_enabled": settings.get("edidhdrflag", "off") == "on",
+            "cec_enabled": settings.get("cec", "off") == "on",
+        }
+
+        return jsonify(result)
+    else:
+        return jsonify(result), 500
+
+
+@app.route("/api/vrroom/command", methods=["POST"])
+def vrroom_command():
+    """Send a command to Vrroom (for applying settings)."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    ip_address = data.get("ip_address", "").strip()
+    command = data.get("command", "").strip()
+    port = data.get("port", VrroomConnection.DEFAULT_PORT)
+
+    if not ip_address:
+        return jsonify({"error": "IP address is required"}), 400
+    if not command:
+        return jsonify({"error": "Command is required"}), 400
+
+    # Security: only allow 'get' and 'set' commands
+    cmd_lower = command.lower()
+    if not (cmd_lower.startswith("get ") or cmd_lower.startswith("set ")):
+        return jsonify({"error": "Only 'get' and 'set' commands are allowed"}), 400
+
+    try:
+        connection = VrroomConnection(ip_address, int(port))
+        connection.connect()
+        response = connection.send_command(command)
+        connection.disconnect()
+
+        return jsonify({
+            "success": True,
+            "command": command,
+            "response": response
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 @app.route("/api/analyze/preroll", methods=["POST"])
