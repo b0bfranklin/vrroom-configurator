@@ -176,6 +176,12 @@
             background: var(--accent-green);
         }
 
+        .btn-large {
+            padding: 14px 32px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
         .results {
             display: none;
         }
@@ -470,6 +476,254 @@
             font-size: 0.95em;
         }
 
+        /* ============================================================= */
+        /* My Setup Tab Styles                                           */
+        /* ============================================================= */
+
+        .setup-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .form-group select {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 1em;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b949e' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group select:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        .form-group select option {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .goals-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .goal-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .goal-item:hover {
+            border-color: var(--accent-blue);
+            background: rgba(88, 166, 255, 0.05);
+        }
+
+        .goal-item.checked {
+            border-color: var(--accent-blue);
+            background: rgba(88, 166, 255, 0.08);
+        }
+
+        .goal-item input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            min-width: 18px;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-primary);
+            cursor: pointer;
+            position: relative;
+            margin-top: 2px;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .goal-item input[type="checkbox"]:checked {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .goal-item input[type="checkbox"]:checked::after {
+            content: '';
+            position: absolute;
+            left: 4px;
+            top: 1px;
+            width: 6px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .goal-item input[type="checkbox"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        .goal-label {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            cursor: pointer;
+        }
+
+        .goal-name {
+            font-weight: 600;
+            font-size: 0.95em;
+            color: var(--text-primary);
+        }
+
+        .goal-description {
+            font-size: 0.82em;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .setup-actions {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        .setup-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .setup-summary-item {
+            background: var(--bg-tertiary);
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .setup-summary-label {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .setup-summary-value {
+            font-size: 1em;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .setup-goals-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .setup-goal-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            background: rgba(88, 166, 255, 0.15);
+            color: var(--accent-blue);
+            border-radius: 12px;
+            font-size: 0.82em;
+            font-weight: 500;
+        }
+
+        .settings-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .settings-table th, .settings-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settings-table th {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+        }
+
+        .settings-table tr:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .settings-table .setting-value {
+            font-family: monospace;
+            color: var(--accent-green);
+            font-size: 0.95em;
+        }
+
+        .rs232-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .rs232-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px 16px;
+            margin-bottom: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+            color: var(--accent-green);
+        }
+
+        .rs232-list li .copy-btn {
+            margin-top: 0;
+            margin-left: 12px;
+            flex-shrink: 0;
+        }
+
+        /* ============================================================= */
+        /* Footer                                                        */
+        /* ============================================================= */
+
         footer {
             text-align: center;
             padding: 40px 20px;
@@ -486,6 +740,10 @@
         footer a:hover {
             text-decoration: underline;
         }
+
+        /* ============================================================= */
+        /* Responsive                                                    */
+        /* ============================================================= */
 
         @media (max-width: 768px) {
             header h1 {
@@ -504,6 +762,18 @@
             .summary {
                 flex-direction: column;
             }
+
+            .setup-form {
+                grid-template-columns: 1fr;
+            }
+
+            .goals-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .setup-summary {
+                grid-template-columns: 1fr 1fr;
+            }
         }
     </style>
 </head>
@@ -515,14 +785,144 @@
         </header>
 
         <div class="tabs">
-            <button class="tab active" data-tab="analyzer">Config Analyzer</button>
+            <button class="tab active" data-tab="setup">My Setup</button>
+            <button class="tab" data-tab="analyzer">Config Analyzer</button>
             <button class="tab" data-tab="preroll">Pre-roll Analyzer</button>
             <button class="tab" data-tab="devices">Device Database</button>
             <button class="tab" data-tab="edid">EDID Reference</button>
         </div>
 
+        <!-- My Setup Tab -->
+        <div id="setup" class="tab-content active">
+            <div class="card">
+                <h2>Equipment Selection</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Select your home theater equipment to get tailored optimization recommendations.
+                </p>
+                <div class="setup-form">
+                    <div class="form-group">
+                        <label for="setup-display">Display (Projector / TV)</label>
+                        <select id="setup-display">
+                            <option value="">-- Select Display --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="setup-hdfury">HDFury Device</label>
+                        <select id="setup-hdfury">
+                            <option value="">-- Select HDFury Device --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="setup-avr">AV Receiver</label>
+                        <select id="setup-avr">
+                            <option value="">-- Select AV Receiver --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="setup-source">Source Device</label>
+                        <select id="setup-source">
+                            <option value="">-- Select Source Device --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="setup-speakers">Speaker Setup</label>
+                        <select id="setup-speakers">
+                            <option value="">-- Select Speaker Setup --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="setup-media-server">Media Server</label>
+                        <select id="setup-media-server">
+                            <option value="">-- Select Media Server --</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Optimization Goals</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Select what you want to optimize. Recommendations will be tailored to your goals.
+                </p>
+                <div class="goals-grid" id="goals-grid">
+                    <!-- Goals will be populated from /api/goals -->
+                </div>
+            </div>
+
+            <div class="setup-actions">
+                <button class="btn btn-large" id="generate-recommendations-btn" onclick="generateRecommendations()">
+                    Generate Recommendations
+                </button>
+            </div>
+
+            <div class="loading" id="setup-loading">
+                <div class="spinner"></div>
+                <p>Generating recommendations for your setup...</p>
+            </div>
+
+            <div class="results" id="setup-results">
+                <!-- Setup Summary -->
+                <div class="card">
+                    <h2>Setup Summary</h2>
+                    <div class="setup-summary" id="setup-summary-grid"></div>
+                    <div id="setup-goals-display"></div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="card" id="setup-recommendations-card">
+                    <h2>Recommendations</h2>
+                    <div id="setup-recommendations"></div>
+                </div>
+
+                <!-- Vrroom Settings -->
+                <div class="card" id="setup-vrroom-settings-card" style="display: none;">
+                    <h2>Vrroom Settings</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Apply these settings via the Vrroom web interface or RS232/IP commands below.
+                    </p>
+                    <table class="settings-table" id="setup-vrroom-settings-table">
+                        <thead>
+                            <tr>
+                                <th>Setting</th>
+                                <th>Recommended Value</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- RS232 Commands -->
+                <div class="card" id="setup-rs232-card" style="display: none;">
+                    <h2>RS232 / IP Commands</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Copy and paste these commands into your Vrroom RS232/IP terminal.
+                    </p>
+                    <ul class="rs232-list" id="setup-rs232-list"></ul>
+                </div>
+
+                <!-- Source Device Settings -->
+                <div class="card" id="setup-source-settings-card" style="display: none;">
+                    <h2>Source Device Settings</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Configure these settings on your source device for optimal results.
+                    </p>
+                    <table class="settings-table" id="setup-source-settings-table">
+                        <thead>
+                            <tr>
+                                <th>Setting</th>
+                                <th>Value</th>
+                                <th>Device</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <!-- Config Analyzer Tab -->
-        <div id="analyzer" class="tab-content active">
+        <div id="analyzer" class="tab-content">
             <div class="card">
                 <h2>Upload Vrroom Configuration</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 16px;">
@@ -610,8 +1010,13 @@
         <!-- Device Database Tab -->
         <div id="devices" class="tab-content">
             <div class="card">
-                <h2>Projectors</h2>
-                <div class="device-grid" id="projectors-grid"></div>
+                <h2>Displays (Projectors / TVs)</h2>
+                <div class="device-grid" id="displays-grid"></div>
+            </div>
+
+            <div class="card">
+                <h2>HDFury Devices</h2>
+                <div class="device-grid" id="hdfury-devices-grid"></div>
             </div>
 
             <div class="card">
@@ -622,6 +1027,16 @@
             <div class="card">
                 <h2>Source Devices</h2>
                 <div class="device-grid" id="sources-grid"></div>
+            </div>
+
+            <div class="card">
+                <h2>Speaker Setups</h2>
+                <div class="device-grid" id="speakers-grid"></div>
+            </div>
+
+            <div class="card">
+                <h2>Media Servers</h2>
+                <div class="device-grid" id="media-servers-grid"></div>
             </div>
         </div>
 
@@ -709,14 +1124,16 @@
         </div>
 
         <footer>
-            <p>Vrroom Configurator v1.0.0</p>
+            <p>Vrroom Configurator v1.1.0</p>
             <p>For HDFury Vrroom Firmware 0.63+</p>
             <p><a href="https://www.hdfury.com/docs/HDfuryVRRoom.pdf" target="_blank">Vrroom Manual</a></p>
         </footer>
     </div>
 
     <script>
+        // =================================================================
         // Tab switching
+        // =================================================================
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -726,7 +1143,9 @@
             });
         });
 
+        // =================================================================
         // Dropzone functionality
+        // =================================================================
         function setupDropzone(dropzoneId, inputId, callback) {
             const dropzone = document.getElementById(dropzoneId);
             const input = document.getElementById(inputId);
@@ -757,7 +1176,9 @@
             });
         }
 
+        // =================================================================
         // Config analyzer
+        // =================================================================
         setupDropzone('config-dropzone', 'config-input', analyzeConfig);
 
         async function analyzeConfig(file) {
@@ -853,7 +1274,9 @@
             }
         }
 
+        // =================================================================
         // Pre-roll analyzer
+        // =================================================================
         setupDropzone('preroll-dropzone', 'preroll-input', analyzePreroll);
 
         async function analyzePreroll(file) {
@@ -966,15 +1389,37 @@
             });
         }
 
+        // =================================================================
         // Load device database
+        // =================================================================
         async function loadDevices() {
             try {
                 const response = await fetch('/api/devices');
                 const data = await response.json();
 
-                displayDevices('projectors-grid', data.projectors);
+                // Device Database tab grids
+                if (data.displays) {
+                    displayDevices('displays-grid', data.displays);
+                }
+                if (data.hdfury_devices) {
+                    displayDevices('hdfury-devices-grid', data.hdfury_devices);
+                }
                 displayDevices('avrs-grid', data.avrs);
                 displayDevices('sources-grid', data.sources);
+                if (data.speakers) {
+                    displayDevices('speakers-grid', data.speakers);
+                }
+                if (data.media_servers) {
+                    displayDevices('media-servers-grid', data.media_servers);
+                }
+
+                // Also support legacy format with projectors key
+                if (data.projectors) {
+                    displayDevices('displays-grid', data.projectors);
+                }
+
+                // Populate My Setup dropdowns
+                populateSetupDropdowns(data);
             } catch (err) {
                 console.error('Error loading devices:', err);
             }
@@ -982,6 +1427,7 @@
 
         function displayDevices(gridId, devices) {
             const grid = document.getElementById(gridId);
+            if (!grid) return;
             grid.innerHTML = Object.values(devices).map(device => `
                 <div class="device-card">
                     <h4>${device.name}</h4>
@@ -992,16 +1438,346 @@
                         ${device.hdr_support ? `<dt>HDR Support</dt><dd>${device.hdr_support.join(', ')}</dd>` : ''}
                         ${device.native_dv !== undefined ? `<dt>Native DV</dt><dd>${device.native_dv ? 'Yes' : 'No'}</dd>` : ''}
                         ${device.lldv_compatible !== undefined ? `<dt>LLDV Compatible</dt><dd>${device.lldv_compatible ? 'Yes' : 'No'}</dd>` : ''}
+                        ${device.lldv_support !== undefined ? `<dt>LLDV Support</dt><dd>${device.lldv_support ? 'Yes' : 'No'}</dd>` : ''}
+                        ${device.vrr_support !== undefined ? `<dt>VRR</dt><dd>${device.vrr_support ? 'Yes' : 'No'}</dd>` : ''}
                         ${device.earc_support !== undefined ? `<dt>eARC</dt><dd>${device.earc_support ? 'Yes' : 'No'}</dd>` : ''}
                         ${device.atmos_support !== undefined ? `<dt>Atmos</dt><dd>${device.atmos_support ? 'Yes' : 'No'}</dd>` : ''}
+                        ${device.atmos_capable !== undefined ? `<dt>Atmos Capable</dt><dd>${device.atmos_capable ? 'Yes' : 'No'}</dd>` : ''}
+                        ${device.layout ? `<dt>Layout</dt><dd>${device.layout}</dd>` : ''}
+                        ${device.inputs ? `<dt>Inputs</dt><dd>${device.inputs}</dd>` : ''}
+                        ${device.outputs ? `<dt>Outputs</dt><dd>${device.outputs}</dd>` : ''}
                         ${device.handshake_time_ms ? `<dt>Handshake Time</dt><dd>${device.handshake_time_ms}ms</dd>` : ''}
+                        ${device.preroll_support !== undefined ? `<dt>Pre-roll</dt><dd>${device.preroll_support ? 'Yes' : 'No'}</dd>` : ''}
+                        ${device.dv_output !== undefined ? `<dt>DV Output</dt><dd>${device.dv_output ? 'Yes' : 'No'}</dd>` : ''}
+                        ${device.lldv_output !== undefined ? `<dt>LLDV Output</dt><dd>${device.lldv_output ? 'Yes' : 'No'}</dd>` : ''}
                     </dl>
                     ${device.notes ? `<div class="device-notes">${device.notes}</div>` : ''}
                 </div>
             `).join('');
         }
 
+        function populateSetupDropdowns(data) {
+            const saved = loadSetupFromStorage();
+
+            // Display dropdown
+            if (data.displays) {
+                populateSelect('setup-display', data.displays, saved.display);
+            } else if (data.projectors) {
+                populateSelect('setup-display', data.projectors, saved.display);
+            }
+
+            // HDFury Device dropdown
+            if (data.hdfury_devices) {
+                populateSelect('setup-hdfury', data.hdfury_devices, saved.hdfury_device);
+            }
+
+            // AVR dropdown
+            if (data.avrs) {
+                populateSelect('setup-avr', data.avrs, saved.avr);
+            }
+
+            // Source dropdown
+            if (data.sources) {
+                populateSelect('setup-source', data.sources, saved.source);
+            }
+
+            // Speakers dropdown
+            if (data.speakers) {
+                populateSelect('setup-speakers', data.speakers, saved.speakers);
+            }
+
+            // Media Server dropdown
+            if (data.media_servers) {
+                populateSelect('setup-media-server', data.media_servers, saved.media_server);
+            }
+        }
+
+        function populateSelect(selectId, devices, savedValue) {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+
+            // Keep the first placeholder option
+            const placeholder = select.options[0];
+            select.innerHTML = '';
+            select.appendChild(placeholder);
+
+            Object.entries(devices).forEach(([key, device]) => {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = device.name;
+                select.appendChild(option);
+            });
+
+            if (savedValue) {
+                select.value = savedValue;
+            }
+        }
+
+        // =================================================================
+        // Load optimization goals
+        // =================================================================
+        async function loadGoals() {
+            try {
+                const response = await fetch('/api/goals');
+                const data = await response.json();
+                const saved = loadSetupFromStorage();
+                const savedGoals = saved.goals || [];
+
+                const goalsGrid = document.getElementById('goals-grid');
+                goalsGrid.innerHTML = Object.values(data).map(goal => {
+                    const isChecked = savedGoals.includes(goal.id);
+                    return `
+                        <label class="goal-item${isChecked ? ' checked' : ''}">
+                            <input type="checkbox" name="goal" value="${goal.id}" ${isChecked ? 'checked' : ''}>
+                            <div class="goal-label">
+                                <span class="goal-name">${goal.name}</span>
+                                <span class="goal-description">${goal.description}</span>
+                            </div>
+                        </label>
+                    `;
+                }).join('');
+
+                // Add change listeners for visual checked state
+                goalsGrid.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.addEventListener('change', function() {
+                        this.closest('.goal-item').classList.toggle('checked', this.checked);
+                        saveSetupToStorage();
+                    });
+                });
+            } catch (err) {
+                console.error('Error loading goals:', err);
+            }
+        }
+
+        // =================================================================
+        // LocalStorage persistence
+        // =================================================================
+        const STORAGE_KEY = 'vrroom_setup';
+
+        function saveSetupToStorage() {
+            const setup = {
+                display: document.getElementById('setup-display').value,
+                hdfury_device: document.getElementById('setup-hdfury').value,
+                avr: document.getElementById('setup-avr').value,
+                source: document.getElementById('setup-source').value,
+                speakers: document.getElementById('setup-speakers').value,
+                media_server: document.getElementById('setup-media-server').value,
+                goals: getSelectedGoals()
+            };
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(setup));
+            } catch (e) {
+                // localStorage may not be available
+            }
+        }
+
+        function loadSetupFromStorage() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    return JSON.parse(stored);
+                }
+            } catch (e) {
+                // localStorage may not be available
+            }
+            return {};
+        }
+
+        function getSelectedGoals() {
+            const checkboxes = document.querySelectorAll('#goals-grid input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // Attach save listeners to all setup dropdowns
+        ['setup-display', 'setup-hdfury', 'setup-avr', 'setup-source', 'setup-speakers', 'setup-media-server'].forEach(id => {
+            document.getElementById(id).addEventListener('change', saveSetupToStorage);
+        });
+
+        // =================================================================
+        // Generate Recommendations
+        // =================================================================
+        async function generateRecommendations() {
+            const setupData = {
+                display: document.getElementById('setup-display').value,
+                hdfury_device: document.getElementById('setup-hdfury').value,
+                avr: document.getElementById('setup-avr').value,
+                source: document.getElementById('setup-source').value,
+                speakers: document.getElementById('setup-speakers').value,
+                media_server: document.getElementById('setup-media-server').value,
+                goals: getSelectedGoals()
+            };
+
+            // Validate at least something is selected
+            const hasEquipment = setupData.display || setupData.hdfury_device || setupData.avr || setupData.source;
+            const hasGoals = setupData.goals.length > 0;
+            if (!hasEquipment && !hasGoals) {
+                alert('Please select at least one piece of equipment and one optimization goal.');
+                return;
+            }
+            if (!hasGoals) {
+                alert('Please select at least one optimization goal.');
+                return;
+            }
+
+            // Save before generating
+            saveSetupToStorage();
+
+            const loading = document.getElementById('setup-loading');
+            const results = document.getElementById('setup-results');
+
+            loading.classList.add('show');
+            results.classList.remove('show');
+
+            try {
+                const response = await fetch('/api/setup/recommend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(setupData)
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    loading.classList.remove('show');
+                    return;
+                }
+
+                displaySetupResults(data);
+            } catch (err) {
+                alert('Error generating recommendations: ' + err.message);
+            }
+
+            loading.classList.remove('show');
+            results.classList.add('show');
+        }
+
+        function displaySetupResults(data) {
+            // Setup summary
+            const summaryGrid = document.getElementById('setup-summary-grid');
+            const summary = data.setup_summary || {};
+            summaryGrid.innerHTML = `
+                <div class="setup-summary-item">
+                    <div class="setup-summary-label">Display</div>
+                    <div class="setup-summary-value">${summary.display || 'Not specified'}</div>
+                </div>
+                <div class="setup-summary-item">
+                    <div class="setup-summary-label">HDFury Device</div>
+                    <div class="setup-summary-value">${summary.hdfury_device || 'Not specified'}</div>
+                </div>
+                <div class="setup-summary-item">
+                    <div class="setup-summary-label">AV Receiver</div>
+                    <div class="setup-summary-value">${summary.avr || 'Not specified'}</div>
+                </div>
+                <div class="setup-summary-item">
+                    <div class="setup-summary-label">Source</div>
+                    <div class="setup-summary-value">${summary.source || 'Not specified'}</div>
+                </div>
+                <div class="setup-summary-item">
+                    <div class="setup-summary-label">Speakers</div>
+                    <div class="setup-summary-value">${summary.speakers || 'Not specified'}</div>
+                </div>
+                <div class="setup-summary-item">
+                    <div class="setup-summary-label">Media Server</div>
+                    <div class="setup-summary-value">${summary.media_server || 'Not specified'}</div>
+                </div>
+            `;
+
+            // Goals display
+            const goalsDisplay = document.getElementById('setup-goals-display');
+            if (summary.goals && summary.goals.length > 0) {
+                goalsDisplay.innerHTML = `
+                    <div style="margin-top: 12px;">
+                        <span style="color: var(--text-secondary); font-size: 0.85em; text-transform: uppercase;">Optimization Goals</span>
+                        <div class="setup-goals-list">
+                            ${summary.goals.map(g => `<span class="setup-goal-tag">${g}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                goalsDisplay.innerHTML = '';
+            }
+
+            // Recommendations (color-coded like config analyzer issues)
+            const recsCard = document.getElementById('setup-recommendations-card');
+            const recsDiv = document.getElementById('setup-recommendations');
+            if (data.recommendations && data.recommendations.length > 0) {
+                recsCard.style.display = 'block';
+                recsDiv.innerHTML = data.recommendations.map(rec => `
+                    <div class="issue ${rec.severity || 'info'}">
+                        <div class="issue-header">
+                            <span class="issue-badge">${rec.severity || 'info'}</span>
+                            <span class="issue-title">${rec.title}</span>
+                        </div>
+                        <div class="issue-description">${rec.description}</div>
+                    </div>
+                `).join('');
+            } else {
+                recsCard.style.display = 'none';
+            }
+
+            // Vrroom Settings table
+            const settingsCard = document.getElementById('setup-vrroom-settings-card');
+            const settingsBody = document.querySelector('#setup-vrroom-settings-table tbody');
+            const vroomSettings = data.vrroom_settings || {};
+            const settingKeys = Object.keys(vroomSettings);
+            if (settingKeys.length > 0) {
+                settingsCard.style.display = 'block';
+                settingsBody.innerHTML = settingKeys.map(key => `
+                    <tr>
+                        <td><strong>${key}</strong></td>
+                        <td class="setting-value">${vroomSettings[key]}</td>
+                    </tr>
+                `).join('');
+            } else {
+                settingsCard.style.display = 'none';
+            }
+
+            // RS232 Commands
+            const rs232Card = document.getElementById('setup-rs232-card');
+            const rs232List = document.getElementById('setup-rs232-list');
+            const commands = data.rs232_commands || [];
+            if (commands.length > 0) {
+                rs232Card.style.display = 'block';
+                rs232List.innerHTML = commands.map(cmd => `
+                    <li>
+                        <span class="rs232-cmd-text">${cmd}</span>
+                        <button class="btn btn-secondary copy-btn" onclick="copyRs232Command(this)">Copy</button>
+                    </li>
+                `).join('');
+            } else {
+                rs232Card.style.display = 'none';
+            }
+
+            // Source Device Settings
+            const srcCard = document.getElementById('setup-source-settings-card');
+            const srcBody = document.querySelector('#setup-source-settings-table tbody');
+            const srcSettings = data.source_settings || [];
+            if (srcSettings.length > 0) {
+                srcCard.style.display = 'block';
+                srcBody.innerHTML = srcSettings.map(s => `
+                    <tr>
+                        <td><strong>${s.setting}</strong></td>
+                        <td class="setting-value">${s.value}</td>
+                        <td>${s.device || ''}</td>
+                        <td style="color: var(--text-secondary); font-size: 0.9em;">${s.reason || ''}</td>
+                    </tr>
+                `).join('');
+            } else {
+                srcCard.style.display = 'none';
+            }
+        }
+
+        function copyRs232Command(btn) {
+            const text = btn.previousElementSibling.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 2000);
+            });
+        }
+
+        // =================================================================
         // Load EDID presets
+        // =================================================================
         async function loadEdidPresets() {
             try {
                 const response = await fetch('/api/edid-presets');
@@ -1031,8 +1807,11 @@
             }
         }
 
+        // =================================================================
         // Initialize
+        // =================================================================
         loadDevices();
+        loadGoals();
         loadEdidPresets();
     </script>
 </body>

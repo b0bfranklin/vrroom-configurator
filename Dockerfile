@@ -11,12 +11,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create non-root user
+RUN useradd -m -r appuser
+
 # Copy application code
 COPY app.py .
 COPY templates/ templates/
 
 # Create directories for uploads and exports
-RUN mkdir -p uploads exports
+RUN mkdir -p uploads exports && chown -R appuser:appuser /app
+
+USER appuser
 
 # Expose port
 EXPOSE 5000
