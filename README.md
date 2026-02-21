@@ -6,15 +6,16 @@ Web-based toolkit for analyzing and optimizing HDFury Vrroom configurations to e
 
 - **2-3 second black screens** during Plex/Jellyfin/Emby pre-rolls
 - **HDMI handshake delays** when video format changes
-- **Difficult to identify** optimal Vrroom settings manually
+- **Dolby Vision on non-DV displays** via LLDV conversion
 - **Pre-roll format mismatches** causing unnecessary format switching
 
 ## Features
 
-- **Config Analyzer** - Upload Vrroom JSON configs, identify timing/EDID issues, download optimized configs
+- **My Setup** - Select your equipment and optimization goals, get tailored recommendations
+- **Config Analyzer** - Upload Vrroom JSON configs, identify issues, download optimized configs
 - **Pre-roll Analyzer** - Analyze video format, get FFmpeg commands to match library content
-- **Device Database** - Pre-configured profiles for popular projectors, AVRs, and sources
-- **EDID Reference** - Documentation for EDID modes, DV strings, and RS232 commands
+- **Device Database** - Pre-configured profiles for displays, AVRs, sources, and speakers
+- **EDID Reference** - Documentation for EDID modes and DV strings
 
 ## Quick Start
 
@@ -39,23 +40,36 @@ docker-compose up -d
 # Open browser to http://localhost:5000
 ```
 
-## Usage
+## Documentation
+
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Installation, configuration, and production deployment
+- **[User Guide](docs/USER_GUIDE.md)** - Complete usage instructions and workflow examples
+
+## Usage Overview
+
+### My Setup (Recommended Starting Point)
+
+1. Select your equipment (display, AVR, source, speakers, media server)
+2. Choose optimization goals (Avoid Bonk, LLDV, Best Audio, etc.)
+3. Click **Generate Recommendations**
+4. Apply Vrroom Settings via web interface
+5. Configure Source Settings on your streaming device
 
 ### Config Analysis
 
-1. Export your Vrroom config from the web interface (CONFIG → EXPORT)
-2. Upload the JSON file to the Config Analyzer tab
+1. Export your Vrroom config (CONFIG → EXPORT)
+2. Upload the JSON file to the Config Analyzer
 3. Review color-coded issues (Critical/Warning/Info)
 4. Download the optimized configuration
 5. Import back to Vrroom (CONFIG → IMPORT)
-6. **Power cycle your Vrroom** (critical after config changes!)
+6. **Power cycle your Vrroom** (critical!)
 
 ### Pre-roll Analysis
 
-1. Upload your pre-roll video file
-2. Review format analysis and identified issues
-3. Copy FFmpeg commands to re-encode your pre-roll
-4. Match format to your main library content to eliminate bonk
+1. Upload your pre-roll video
+2. Review format analysis
+3. Copy FFmpeg commands to re-encode
+4. Match format to main library content
 
 ## Expected Results
 
@@ -70,15 +84,23 @@ Originally developed for:
 - **Projector**: Epson EH-LS12000b (non-native DV, LLDV compatible)
 - **AVR**: Yamaha RX-A4A
 - **Source**: Nvidia Shield Pro
+- **Speakers**: 5.2.2 Atmos
 - **Processor**: HDFury Vrroom (Firmware 0.63+)
 
-## LLDV (Low Latency Dolby Vision)
+Supports additional devices including JVC projectors, Denon/Marantz AVRs, Apple TV, and more.
 
-For projectors without native Dolby Vision support:
-- Vrroom can inject LLDV capability into EDID
-- Sources output LLDV which gets converted to HDR10
-- Preserves dynamic metadata benefits
-- Use AutoMix mode with appropriate DV string (X930E, etc.)
+## API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/analyze/config` | POST | Analyze Vrroom config JSON |
+| `/api/analyze/preroll` | POST | Analyze pre-roll video |
+| `/api/download/<filename>` | GET | Download optimized config |
+| `/api/devices` | GET | Get device profiles |
+| `/api/goals` | GET | Get optimization goals |
+| `/api/setup/recommend` | POST | Generate setup recommendations |
+| `/api/edid-presets` | GET | Get EDID documentation |
+| `/api/health` | GET | Health check |
 
 ## Dependencies
 
@@ -92,6 +114,9 @@ For projectors without native Dolby Vision support:
 vrroom-configurator/
 ├── app.py                    # Flask web application
 ├── templates/index.html      # Web interface
+├── docs/
+│   ├── DEPLOYMENT.md        # Deployment guide
+│   └── USER_GUIDE.md        # User guide
 ├── requirements.txt          # Python dependencies
 ├── Dockerfile               # Container build
 ├── docker-compose.yml       # Easy deployment
@@ -102,17 +127,6 @@ vrroom-configurator/
 ├── HDfury_EDID_collection/  # EDID binary files
 └── VRRoom_FW_63/           # Firmware documentation
 ```
-
-## API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/analyze/config` | POST | Analyze Vrroom config JSON |
-| `/api/analyze/preroll` | POST | Analyze pre-roll video |
-| `/api/download/<filename>` | GET | Download optimized config |
-| `/api/devices` | GET | Get device profiles |
-| `/api/edid-presets` | GET | Get EDID documentation |
-| `/api/health` | GET | Health check |
 
 ## License
 
