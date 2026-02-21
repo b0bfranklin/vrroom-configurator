@@ -181,7 +181,41 @@ DEVICE_PROFILES = {
             "recommended_edid": "automix",
             "vrr_support": False,
             "allm_support": False,
-            "notes": "Use LLDV for Dolby Vision content. Native HDR10 support excellent."
+            "light_source": "laser",
+            "light_output_lumens": 2700,
+            "native_contrast": "2500000:1",
+            "panel_tech": "3LCD with 4K PRO-UHD",
+            "lens_shift": True,
+            "lens_memory": True,
+            "lens_memory_slots": 10,
+            "hdmi_inputs": 2,
+            "config_paths": {
+                "picture_mode": "Menu > Image > Color Mode",
+                "hdr_setting": "Menu > Image > HDR > HDR10 Setting",
+                "brightness": "Menu > Image > Brightness",
+                "contrast": "Menu > Image > Contrast",
+                "color_temp": "Menu > Image > White Balance > Color Temp.",
+                "gamma": "Menu > Image > Gamma",
+                "hdmi_signal": "Menu > Signal I/O > HDMI IN > EDID > Expanded",
+                "frame_interp": "Menu > Image > Image Enhancement > Frame Interpolation",
+                "aspect_ratio": "Menu > Signal I/O > Signal > Aspect",
+                "lens_memory": "Menu > Settings > Lens Position > Memory > Load",
+                "power_mode": "Menu > Settings > Operation > Light Source Mode",
+                "auto_iris": "Not available (laser model)",
+            },
+            "recommended_settings": {
+                "color_mode_sdr": "Natural",
+                "color_mode_hdr": "HDR10 (Auto) or Cinema",
+                "gamma_sdr": "Custom (2.2-2.4 depending on room darkness)",
+                "gamma_hdr": "HDR10 auto-curves",
+                "hdr10_dynamic_range": "Auto or 16 (for 100-nit room)",
+                "frame_interpolation": "Off (for film purists) or Low (for smoothing)",
+                "color_temp": "6500K / D65",
+                "hdmi_signal_format": "Expanded (required for 4K HDR)",
+                "light_source_mode": "Custom (dim for dark room, bright for some ambient)",
+                "aspect_ratio": "Auto (16:9 content) or Anamorphic (with lens memory for scope)",
+            },
+            "notes": "Use LLDV for Dolby Vision content. Native HDR10 support excellent. Laser light source with 2700 lumens."
         },
         "jvc_dla_nz8": {
             "name": "JVC DLA-NZ8",
@@ -196,7 +230,26 @@ DEVICE_PROFILES = {
             "recommended_edid": "automix",
             "vrr_support": False,
             "allm_support": False,
-            "notes": "Excellent tone mapping. Consider RS232 macros for lens memory."
+            "light_source": "laser",
+            "panel_tech": "D-ILA (native 4K)",
+            "lens_shift": True,
+            "lens_memory": True,
+            "config_paths": {
+                "picture_mode": "Menu > Picture > Picture Mode",
+                "hdr_setting": "Menu > Picture > HDR Setting > HDR Level",
+                "gamma": "Menu > Picture > Gamma",
+                "hdmi_signal": "Menu > Input/Output > HDMI > Input Level",
+                "frame_interp": "Menu > Picture > Motion Enhance > Clear Motion Drive",
+                "lens_memory": "Menu > Installation > Lens Control > Lens Memory",
+            },
+            "recommended_settings": {
+                "color_mode_sdr": "Natural",
+                "color_mode_hdr": "Frame Adapt HDR",
+                "gamma_hdr": "Frame Adapt HDR auto-tone mapping",
+                "frame_interpolation": "Off or Low",
+                "hdmi_signal_format": "Auto (supports up to 48Gbps)",
+            },
+            "notes": "Excellent tone mapping via Frame Adapt HDR. Consider RS232 macros for lens memory."
         },
         "jvc_dla_nz7": {
             "name": "JVC DLA-NZ7",
@@ -211,7 +264,23 @@ DEVICE_PROFILES = {
             "recommended_edid": "automix",
             "vrr_support": False,
             "allm_support": False,
-            "notes": "E-shift 4K. Good candidate for LLDV via Vrroom."
+            "light_source": "laser",
+            "panel_tech": "D-ILA (e-Shift 4K)",
+            "lens_shift": True,
+            "lens_memory": True,
+            "config_paths": {
+                "picture_mode": "Menu > Picture > Picture Mode",
+                "hdr_setting": "Menu > Picture > HDR Setting > HDR Level",
+                "gamma": "Menu > Picture > Gamma",
+                "hdmi_signal": "Menu > Input/Output > HDMI > Input Level",
+                "frame_interp": "Menu > Picture > Motion Enhance > Clear Motion Drive",
+                "lens_memory": "Menu > Installation > Lens Control > Lens Memory",
+            },
+            "recommended_settings": {
+                "color_mode_hdr": "Frame Adapt HDR",
+                "frame_interpolation": "Off or Low",
+            },
+            "notes": "E-shift 4K. Good candidate for LLDV via Vrroom. Frame Adapt HDR tone mapping."
         },
         "sony_vpl_xw7000": {
             "name": "Sony VPL-XW7000ES",
@@ -226,7 +295,24 @@ DEVICE_PROFILES = {
             "recommended_edid": "automix",
             "vrr_support": False,
             "allm_support": False,
-            "notes": "Native 4K panel. Fast HDMI handshake."
+            "light_source": "laser",
+            "panel_tech": "SXRD (native 4K)",
+            "lens_shift": True,
+            "lens_memory": True,
+            "config_paths": {
+                "picture_mode": "Menu > Image > Preset",
+                "hdr_setting": "Menu > Image > HDR > HDR Tone Mapping",
+                "gamma": "Menu > Image > Gamma Correction",
+                "hdmi_signal": "Menu > Setup > HDMI > HDMI Signal Format > Enhanced",
+                "frame_interp": "Menu > Image > Motionflow",
+                "lens_memory": "Menu > Installation > Lens Position",
+            },
+            "recommended_settings": {
+                "color_mode_hdr": "Reference or Cinema Film 1",
+                "frame_interpolation": "Off",
+                "hdmi_signal_format": "Enhanced (required for 4K HDR)",
+            },
+            "notes": "Native 4K SXRD panel. Fast HDMI handshake. Good HDR tone mapping."
         },
         "lg_c3_oled": {
             "name": "LG C3 OLED",
@@ -369,7 +455,22 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 500,
             "recommended_audio_mode": "earc",
-            "notes": "Good HDMI 2.1 passthrough. Use eARC for best audio."
+            "max_channels": "9.2",
+            "amplifier_channels": 9,
+            "room_correction": "YPAO",
+            "room_correction_mic": "YPAO microphone (included)",
+            "dirac_support": False,
+            "config_paths": {
+                "speaker_setup": "Setup > Speaker > Manual Setup > Configuration",
+                "crossover": "Setup > Speaker > Manual Setup > Crossover",
+                "distance": "Setup > Speaker > Manual Setup > Distance",
+                "level": "Setup > Speaker > Manual Setup > Level",
+                "room_correction": "Setup > Speaker > YPAO",
+                "surround_decode": "Sound > Surround Decoder",
+                "hdmi_audio": "Setup > HDMI > Audio Output",
+                "earc": "Setup > HDMI > HDMI Control > ARC",
+            },
+            "notes": "Good HDMI 2.1 passthrough. Use eARC for best audio. YPAO room correction included."
         },
         "yamaha_rx_a6a": {
             "name": "Yamaha RX-A6A",
@@ -383,7 +484,22 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 500,
             "recommended_audio_mode": "earc",
-            "notes": "Flagship Yamaha. 11.2ch processing with HDMI 2.1."
+            "max_channels": "11.2",
+            "amplifier_channels": 11,
+            "room_correction": "YPAO",
+            "room_correction_mic": "YPAO microphone (included)",
+            "dirac_support": False,
+            "config_paths": {
+                "speaker_setup": "Setup > Speaker > Manual Setup > Configuration",
+                "crossover": "Setup > Speaker > Manual Setup > Crossover",
+                "distance": "Setup > Speaker > Manual Setup > Distance",
+                "level": "Setup > Speaker > Manual Setup > Level",
+                "room_correction": "Setup > Speaker > YPAO",
+                "surround_decode": "Sound > Surround Decoder",
+                "hdmi_audio": "Setup > HDMI > Audio Output",
+                "earc": "Setup > HDMI > HDMI Control > ARC",
+            },
+            "notes": "Flagship Yamaha. 11.2ch processing with HDMI 2.1. YPAO room correction."
         },
         "denon_avr_x3800h": {
             "name": "Denon AVR-X3800H",
@@ -397,7 +513,22 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 600,
             "recommended_audio_mode": "earc",
-            "notes": "Excellent HDMI 2.1 implementation."
+            "max_channels": "9.4",
+            "amplifier_channels": 9,
+            "room_correction": "Audyssey MultEQ XT32",
+            "room_correction_mic": "Audyssey microphone (included)",
+            "dirac_support": True,
+            "config_paths": {
+                "speaker_setup": "Setup > Speakers > Manual Setup > Speaker Config",
+                "crossover": "Setup > Speakers > Manual Setup > Crossovers",
+                "distance": "Setup > Speakers > Manual Setup > Distances",
+                "level": "Setup > Speakers > Manual Setup > Levels",
+                "room_correction": "Setup > Speakers > Audyssey Setup",
+                "surround_decode": "Setup > Surround Parameter > Surround Parameter",
+                "hdmi_audio": "Setup > HDMI Setup > Audio Output",
+                "earc": "Setup > HDMI Setup > eARC",
+            },
+            "notes": "Excellent HDMI 2.1. Audyssey XT32 room correction. Dirac Live upgrade available."
         },
         "denon_avr_x4800h": {
             "name": "Denon AVR-X4800H",
@@ -411,7 +542,22 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 600,
             "recommended_audio_mode": "earc",
-            "notes": "11.4ch processing. Dirac Live ready."
+            "max_channels": "11.4",
+            "amplifier_channels": 11,
+            "room_correction": "Audyssey MultEQ XT32",
+            "room_correction_mic": "Audyssey microphone (included)",
+            "dirac_support": True,
+            "config_paths": {
+                "speaker_setup": "Setup > Speakers > Manual Setup > Speaker Config",
+                "crossover": "Setup > Speakers > Manual Setup > Crossovers",
+                "distance": "Setup > Speakers > Manual Setup > Distances",
+                "level": "Setup > Speakers > Manual Setup > Levels",
+                "room_correction": "Setup > Speakers > Audyssey Setup",
+                "surround_decode": "Setup > Surround Parameter > Surround Parameter",
+                "hdmi_audio": "Setup > HDMI Setup > Audio Output",
+                "earc": "Setup > HDMI Setup > eARC",
+            },
+            "notes": "11.4ch processing. Dirac Live ready. Audyssey XT32 included."
         },
         "marantz_cinema_50": {
             "name": "Marantz Cinema 50",
@@ -425,7 +571,22 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 600,
             "recommended_audio_mode": "earc",
-            "notes": "Premium audio processing. Same HDMI board as Denon."
+            "max_channels": "9.4",
+            "amplifier_channels": 9,
+            "room_correction": "Audyssey MultEQ XT32",
+            "room_correction_mic": "Audyssey microphone (included)",
+            "dirac_support": True,
+            "config_paths": {
+                "speaker_setup": "Setup > Speakers > Manual Setup > Speaker Config",
+                "crossover": "Setup > Speakers > Manual Setup > Crossovers",
+                "distance": "Setup > Speakers > Manual Setup > Distances",
+                "level": "Setup > Speakers > Manual Setup > Levels",
+                "room_correction": "Setup > Speakers > Audyssey Setup",
+                "surround_decode": "Setup > Surround Parameter > Surround Parameter",
+                "hdmi_audio": "Setup > HDMI Setup > Audio Output",
+                "earc": "Setup > HDMI Setup > eARC",
+            },
+            "notes": "Premium audio processing. Same HDMI board as Denon. Audyssey XT32 + Dirac available."
         },
         "anthem_mrx_1140": {
             "name": "Anthem MRX 1140",
@@ -439,7 +600,22 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 700,
             "recommended_audio_mode": "earc",
-            "notes": "Premium processor with ARC Genesis room correction."
+            "max_channels": "15.2",
+            "amplifier_channels": 7,
+            "room_correction": "ARC Genesis",
+            "room_correction_mic": "ARC Genesis microphone (included)",
+            "dirac_support": False,
+            "config_paths": {
+                "speaker_setup": "Settings > Speaker Configuration > Speaker Setup",
+                "crossover": "Settings > Speaker Configuration > Bass Management",
+                "distance": "Settings > Speaker Configuration > Speaker Distances",
+                "level": "Settings > Speaker Configuration > Speaker Levels",
+                "room_correction": "Settings > ARC Genesis > Run ARC",
+                "surround_decode": "Settings > Decoder Settings",
+                "hdmi_audio": "Settings > Audio > HDMI Audio",
+                "earc": "Settings > Audio > eARC",
+            },
+            "notes": "Premium processor with ARC Genesis room correction. Excellent measurement-based EQ."
         }
     },
     "sources": {
@@ -644,6 +820,80 @@ DEVICE_PROFILES = {
             "notes": "Basic soundbar via ARC. May need ARC mode (not eARC) on Vrroom."
         }
     },
+    "screens": {
+        "grandview_105_fixed": {
+            "name": "Grandview 105\" Fixed Frame",
+            "type": "screen",
+            "size_inches": 105,
+            "aspect_ratio": "16:9",
+            "material": "white",
+            "gain": 1.0,
+            "viewing_distance_recommended": "10-14 ft",
+            "acoustically_transparent": False,
+            "ambient_light_rejecting": False,
+            "notes": "Standard white fixed frame. Good for dedicated light-controlled rooms."
+        },
+        "grandview_120_fixed": {
+            "name": "Grandview 120\" Fixed Frame",
+            "type": "screen",
+            "size_inches": 120,
+            "aspect_ratio": "16:9",
+            "material": "white",
+            "gain": 1.0,
+            "viewing_distance_recommended": "12-16 ft",
+            "acoustically_transparent": False,
+            "ambient_light_rejecting": False,
+            "notes": "Larger format for rooms with 12ft+ seating distance."
+        },
+        "screen_100_alr": {
+            "name": "100\" ALR (Ambient Light Rejecting)",
+            "type": "screen",
+            "size_inches": 100,
+            "aspect_ratio": "16:9",
+            "material": "ALR grey",
+            "gain": 0.8,
+            "viewing_distance_recommended": "8-12 ft",
+            "acoustically_transparent": False,
+            "ambient_light_rejecting": True,
+            "notes": "ALR material rejects ambient light for rooms without full light control. May reduce off-axis brightness."
+        },
+        "screen_120_at": {
+            "name": "120\" Acoustically Transparent",
+            "type": "screen",
+            "size_inches": 120,
+            "aspect_ratio": "16:9",
+            "material": "woven AT",
+            "gain": 0.9,
+            "viewing_distance_recommended": "12-16 ft",
+            "acoustically_transparent": True,
+            "ambient_light_rejecting": False,
+            "notes": "Woven acoustically transparent material. Place L/C/R speakers behind screen for phantom-free center channel."
+        },
+        "screen_135_cinemascope": {
+            "name": "135\" CinemaScope 2.35:1",
+            "type": "screen",
+            "size_inches": 135,
+            "aspect_ratio": "2.35:1",
+            "material": "white",
+            "gain": 1.0,
+            "viewing_distance_recommended": "12-16 ft",
+            "acoustically_transparent": False,
+            "ambient_light_rejecting": False,
+            "notes": "CinemaScope aspect ratio for scope movies without letterboxing. Use lens memory or anamorphic lens."
+        },
+        "screen_motorized_110": {
+            "name": "110\" Motorized Drop-Down",
+            "type": "screen",
+            "size_inches": 110,
+            "aspect_ratio": "16:9",
+            "material": "white",
+            "gain": 1.0,
+            "viewing_distance_recommended": "10-14 ft",
+            "acoustically_transparent": False,
+            "ambient_light_rejecting": False,
+            "notes": "Motorized screen for multi-purpose rooms. Can be triggered via RS232 or 12V trigger."
+        }
+    },
     "media_servers": {
         "plex": {
             "name": "Plex",
@@ -839,6 +1089,7 @@ class SetupRecommendationEngine:
         self.hdfury_id = setup.get("hdfury_device", "")
         self.avr_id = setup.get("avr", "")
         self.speaker_id = setup.get("speakers", "")
+        self.screen_id = setup.get("screen", "")
         self.media_server_id = setup.get("media_server", "")
         self.goals = setup.get("goals", [])
 
@@ -866,6 +1117,7 @@ class SetupRecommendationEngine:
         self.hdfury = DEVICE_PROFILES["hdfury_devices"].get(self.hdfury_id, {})
         self.avr = DEVICE_PROFILES["avrs"].get(self.avr_id, {})
         self.speakers = DEVICE_PROFILES["speakers"].get(self.speaker_id, {})
+        self.screen = DEVICE_PROFILES["screens"].get(self.screen_id, {})
         self.media_server = DEVICE_PROFILES["media_servers"].get(self.media_server_id, {})
 
     def generate(self):
@@ -873,6 +1125,8 @@ class SetupRecommendationEngine:
         recommendations = []
         vrroom_settings = {}
         source_settings = []
+        avr_settings = []
+        display_settings = []
 
         for goal_id in self.goals:
             handler = getattr(self, f"_goal_{goal_id}", None)
@@ -887,6 +1141,16 @@ class SetupRecommendationEngine:
         recommendations.extend(general.get("recommendations", []))
         vrroom_settings.update(general.get("vrroom_settings", {}))
         source_settings.extend(general.get("source_settings", []))
+
+        # Generate AVR config recommendations
+        avr_result = self._avr_config_recs()
+        recommendations.extend(avr_result.get("recommendations", []))
+        avr_settings = avr_result.get("avr_settings", [])
+
+        # Generate display/projector config recommendations
+        display_result = self._display_config_recs()
+        recommendations.extend(display_result.get("recommendations", []))
+        display_settings = display_result.get("display_settings", [])
 
         # Deduplicate
         seen_recs = set()
@@ -924,12 +1188,15 @@ class SetupRecommendationEngine:
                 "avr": self.avr.get("name", "Not specified"),
                 "sources": [s[1].get("name", "Unknown") for s in self.sources] if self.sources else ["Not specified"],
                 "speakers": self.speakers.get("name", "Not specified"),
+                "screen": self.screen.get("name", "Not specified"),
                 "media_server": self.media_server.get("name", "Not specified"),
                 "goals": [OPTIMIZATION_GOALS[g]["name"] for g in self.goals if g in OPTIMIZATION_GOALS]
             },
             "recommendations": unique_recs,
             "vrroom_settings": vrroom_settings,
             "source_settings": unique_src,
+            "avr_settings": avr_settings,
+            "display_settings": display_settings,
             "download_filename": config_filename
         }
 
@@ -981,6 +1248,344 @@ class SetupRecommendationEngine:
                 })
 
         return {"recommendations": recs, "vrroom_settings": settings, "source_settings": source_settings}
+
+    def _avr_config_recs(self):
+        """Generate AVR configuration recommendations based on speaker layout."""
+        recs = []
+        avr_settings = []
+
+        if not self.avr or not self.speakers:
+            return {"recommendations": recs, "avr_settings": avr_settings}
+
+        avr_name = self.avr.get("name", "AVR")
+        speaker_layout = self.speakers.get("layout", "")
+        channels = self.speakers.get("channels", 0)
+        overhead = self.speakers.get("overhead_channels", 0)
+        subs = self.speakers.get("sub_channels", 0)
+        has_atmos = self.speakers.get("atmos_capable", False)
+        config_paths = self.avr.get("config_paths", {})
+        room_correction = self.avr.get("room_correction", "")
+
+        # Speaker configuration
+        total_bed = channels + subs
+        total_with_height = channels + overhead + subs
+        layout_label = speaker_layout or f"{channels}.{subs}"
+        if overhead > 0:
+            layout_label = f"{channels}.{subs}.{overhead}"
+
+        avr_settings.append({
+            "setting": "Speaker Configuration",
+            "value": f"{layout_label} ({total_with_height} total speakers)",
+            "category": "speakers",
+            "path": config_paths.get("speaker_setup", ""),
+            "reason": f"Set AVR to {layout_label} layout to match your physical speaker arrangement."
+        })
+
+        # Crossover settings
+        crossover_main = "80 Hz"
+        crossover_reason = "80 Hz is the THX-recommended crossover for most speakers."
+        if subs >= 2:
+            crossover_reason += " Dual subs provide smoother bass; 80 Hz crossover ensures seamless handoff."
+
+        avr_settings.append({
+            "setting": "Crossover Frequency (all channels)",
+            "value": crossover_main,
+            "category": "speakers",
+            "path": config_paths.get("crossover", ""),
+            "reason": crossover_reason
+        })
+
+        # Subwoofer mode
+        if subs >= 2:
+            avr_settings.append({
+                "setting": "Subwoofer Mode",
+                "value": "LFE + Main (both subs active)",
+                "category": "speakers",
+                "path": config_paths.get("speaker_setup", ""),
+                "reason": "Dual subs provide even bass distribution and reduce room mode nulls."
+            })
+
+        # Height/Atmos channels
+        if overhead > 0 and has_atmos:
+            height_type = "Top" if overhead == 4 else "Top"
+            if overhead == 2:
+                height_label = "2 height channels (Front Height or Top Middle)"
+                avr_settings.append({
+                    "setting": "Height Speaker Assignment",
+                    "value": "Front Height or Top Middle",
+                    "category": "speakers",
+                    "path": config_paths.get("speaker_setup", ""),
+                    "reason": "With 2 height channels, Top Middle or Front Height gives the best Atmos overhead coverage. "
+                              "Top Middle preferred for ceiling-mounted; Front Height for upfiring modules."
+                })
+            elif overhead == 4:
+                height_label = "4 height channels (Top Front + Top Rear)"
+                avr_settings.append({
+                    "setting": "Height Speaker Assignment",
+                    "value": "Top Front + Top Rear (or Front Height + Rear Height)",
+                    "category": "speakers",
+                    "path": config_paths.get("speaker_setup", ""),
+                    "reason": "4 height channels provide full Atmos hemisphere. "
+                              "Top Front + Top Rear for ceiling; Front Height + Rear Height for upfiring."
+                })
+
+        # Surround decode mode
+        if has_atmos:
+            avr_settings.append({
+                "setting": "Surround Decode Mode",
+                "value": "Dolby Atmos / DTS:X (Auto)",
+                "category": "processing",
+                "path": config_paths.get("surround_decode", ""),
+                "reason": "Auto mode decodes native Atmos/DTS:X tracks and upmixes stereo/5.1 content to height speakers."
+            })
+            recs.append({
+                "severity": "info",
+                "title": f"Atmos Configuration for {avr_name}",
+                "description": f"Your {speaker_layout} layout with {avr_name} supports Dolby Atmos and DTS:X. "
+                               "Ensure surround decode is set to Auto to engage height channels for object-based audio."
+            })
+
+        # HDMI audio output
+        avr_settings.append({
+            "setting": "HDMI Audio Output",
+            "value": "AMP (decode in AVR)",
+            "category": "audio_routing",
+            "path": config_paths.get("hdmi_audio", ""),
+            "reason": "Route audio decoding to AVR rather than passing through to TV/projector."
+        })
+
+        # eARC
+        if self.avr.get("earc_support"):
+            avr_settings.append({
+                "setting": "eARC",
+                "value": "Enabled",
+                "category": "audio_routing",
+                "path": config_paths.get("earc", ""),
+                "reason": "eARC enables lossless Atmos (TrueHD MAT) and DTS:X passthrough from display or Vrroom."
+            })
+
+        # Room correction
+        if room_correction:
+            avr_settings.append({
+                "setting": f"Room Correction ({room_correction})",
+                "value": "Run calibration with all speakers at listening position",
+                "category": "calibration",
+                "path": config_paths.get("room_correction", ""),
+                "reason": f"{room_correction} measures your room acoustics and applies EQ correction. "
+                          "Run at primary listening position. Use multiple measurement points if supported."
+            })
+            recs.append({
+                "severity": "warning",
+                "title": f"Run {room_correction} Calibration",
+                "description": f"After configuring speaker layout on {avr_name}, run {room_correction} room correction. "
+                               "This compensates for room acoustics, speaker placement, and distance differences. "
+                               "Place the microphone at ear height at your primary listening position."
+            })
+
+        # Speaker distance calibration note
+        avr_settings.append({
+            "setting": "Speaker Distances",
+            "value": "Measure from each speaker to listening position",
+            "category": "calibration",
+            "path": config_paths.get("distance", ""),
+            "reason": "Correct distance settings ensure all speakers are time-aligned. "
+                      "Measure in a straight line from each speaker cone to your head position."
+        })
+
+        # Speaker levels
+        avr_settings.append({
+            "setting": "Speaker Levels",
+            "value": "Calibrate to 75 dB SPL at listening position (use SPL meter or room correction)",
+            "category": "calibration",
+            "path": config_paths.get("level", ""),
+            "reason": "All speakers should measure the same SPL at the listening position. "
+                      "Room correction typically handles this, or use an SPL meter app with test tones."
+        })
+
+        return {"recommendations": recs, "avr_settings": avr_settings}
+
+    def _display_config_recs(self):
+        """Generate display/projector configuration recommendations."""
+        recs = []
+        display_settings = []
+
+        if not self.display:
+            return {"recommendations": recs, "display_settings": display_settings}
+
+        display_name = self.display.get("name", "Display")
+        display_type = self.display.get("type", "")
+        config_paths = self.display.get("config_paths", {})
+        recommended = self.display.get("recommended_settings", {})
+        is_projector = display_type == "projector"
+
+        if not config_paths and not recommended:
+            # No detailed config available for this display
+            return {"recommendations": recs, "display_settings": display_settings}
+
+        # HDMI signal format (critical for 4K HDR)
+        hdmi_signal_path = config_paths.get("hdmi_signal", "")
+        hdmi_rec = recommended.get("hdmi_signal_format", "")
+        if hdmi_signal_path or hdmi_rec:
+            display_settings.append({
+                "setting": "HDMI Signal Format",
+                "value": hdmi_rec or "Enhanced / Expanded (required for 4K HDR)",
+                "category": "input",
+                "path": hdmi_signal_path,
+                "reason": "HDMI inputs must be set to Enhanced/Expanded mode to accept 4K HDR 10-bit signals. "
+                          "Standard mode limits to 8-bit SDR."
+            })
+
+        # Picture mode for SDR
+        sdr_mode = recommended.get("color_mode_sdr", "")
+        if sdr_mode:
+            display_settings.append({
+                "setting": "Picture Mode (SDR content)",
+                "value": sdr_mode,
+                "category": "picture",
+                "path": config_paths.get("picture_mode", ""),
+                "reason": "Natural or Cinema modes provide the most accurate colors for SDR content "
+                          "with proper BT.709 color space and 2.2-2.4 gamma."
+            })
+
+        # Picture mode for HDR
+        hdr_mode = recommended.get("color_mode_hdr", "")
+        if hdr_mode:
+            display_settings.append({
+                "setting": "Picture Mode (HDR content)",
+                "value": hdr_mode,
+                "category": "picture",
+                "path": config_paths.get("picture_mode", ""),
+                "reason": "HDR picture mode applies appropriate tone mapping and "
+                          "BT.2020 wide color gamut processing for HDR10/HLG content."
+            })
+
+        # HDR-specific settings
+        hdr_range = recommended.get("hdr10_dynamic_range", "")
+        if hdr_range:
+            display_settings.append({
+                "setting": "HDR10 Dynamic Range",
+                "value": hdr_range,
+                "category": "picture",
+                "path": config_paths.get("hdr_setting", ""),
+                "reason": "Controls how HDR tone mapping maps the source brightness range to your display's capability. "
+                          "Auto works for most content; a value of 16 works well in fully dark rooms."
+            })
+
+        # Color temperature
+        color_temp = recommended.get("color_temp", "")
+        if color_temp:
+            display_settings.append({
+                "setting": "Color Temperature",
+                "value": color_temp,
+                "category": "picture",
+                "path": config_paths.get("color_temp", ""),
+                "reason": "D65 (6500K) is the reference white point for both SDR and HDR content. "
+                          "Warm/Warm2 presets on most displays approximate D65."
+            })
+
+        # Gamma
+        gamma_sdr = recommended.get("gamma_sdr", "")
+        if gamma_sdr:
+            display_settings.append({
+                "setting": "Gamma (SDR)",
+                "value": gamma_sdr,
+                "category": "picture",
+                "path": config_paths.get("gamma", ""),
+                "reason": "For a dark dedicated theater room, gamma 2.4 (BT.1886) is ideal. "
+                          "For rooms with some ambient light, use 2.2. Adjust based on viewing conditions."
+            })
+
+        # Frame interpolation
+        fi = recommended.get("frame_interpolation", "")
+        if fi:
+            display_settings.append({
+                "setting": "Frame Interpolation / Motion Smoothing",
+                "value": fi,
+                "category": "processing",
+                "path": config_paths.get("frame_interp", ""),
+                "reason": "Off preserves the filmmaker's intended 24fps cadence (no soap opera effect). "
+                          "Low setting can help with judder on some displays without the soap opera look."
+            })
+
+        # Projector-specific settings
+        if is_projector:
+            # Light source mode
+            light_mode = recommended.get("light_source_mode", "")
+            if light_mode:
+                display_settings.append({
+                    "setting": "Light Source Mode",
+                    "value": light_mode,
+                    "category": "projector",
+                    "path": config_paths.get("power_mode", ""),
+                    "reason": "Adjust laser/lamp output to room conditions. Lower output in fully dark rooms "
+                              "preserves contrast and extends light source life."
+                })
+
+            # Aspect ratio
+            aspect = recommended.get("aspect_ratio", "")
+            if aspect:
+                display_settings.append({
+                    "setting": "Aspect Ratio",
+                    "value": aspect,
+                    "category": "projector",
+                    "path": config_paths.get("aspect_ratio", ""),
+                    "reason": "Auto handles 16:9 and letterboxed content. Use Anamorphic/Lens Memory "
+                              "for constant image height setups with CinemaScope screens."
+                })
+
+            # Lens memory
+            if self.display.get("lens_memory"):
+                display_settings.append({
+                    "setting": "Lens Memory",
+                    "value": "Configure presets for 16:9 and 2.35:1 aspect ratios",
+                    "category": "projector",
+                    "path": config_paths.get("lens_memory", ""),
+                    "reason": "Lens memory stores zoom/shift positions for different aspect ratios. "
+                              "Set one preset for 16:9 (full screen) and one for 2.35:1 (scope) if using CinemaScope screen."
+                })
+
+            # Screen-specific projector recommendations
+            if self.screen:
+                screen_name = self.screen.get("name", "screen")
+                gain = self.screen.get("gain", 1.0)
+                is_at = self.screen.get("acoustically_transparent", False)
+                is_alr = self.screen.get("ambient_light_rejecting", False)
+
+                recs.append({
+                    "severity": "info",
+                    "title": f"Projector + Screen: {display_name} on {screen_name}",
+                    "description": f"Screen gain: {gain}. "
+                                   + ("Acoustically transparent screen - place L/C/R behind screen for best imaging. " if is_at else "")
+                                   + ("ALR screen - good for rooms with ambient light but may affect off-axis viewing. " if is_alr else "")
+                                   + (f"With {gain} gain, no brightness compensation needed." if gain >= 1.0
+                                      else f"With {gain} gain, increase projector brightness to compensate for light loss.")
+                })
+
+                if is_at:
+                    recs.append({
+                        "severity": "info",
+                        "title": "Acoustically Transparent Screen Detected",
+                        "description": "Place your front L/C/R speakers directly behind the screen for phantom-free "
+                                       "center channel and seamless sound-to-image integration. AT screens typically "
+                                       "have slightly lower gain than solid screens."
+                    })
+
+            recs.append({
+                "severity": "info",
+                "title": f"{display_name} Optimization Guide",
+                "description": f"Review the display settings below for recommended picture modes, HDR calibration, "
+                               "and projector-specific settings. Settings are tailored to this specific display model."
+            })
+
+        else:
+            # TV-specific
+            recs.append({
+                "severity": "info",
+                "title": f"{display_name} Settings",
+                "description": "Review the display settings below for recommended picture modes and HDR calibration."
+            })
+
+        return {"recommendations": recs, "display_settings": display_settings}
 
     def _goal_avoid_bonk(self):
         """Recommendations for avoiding HDMI bonk/blank screen."""
