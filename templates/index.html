@@ -559,6 +559,47 @@
             color: var(--text-secondary);
         }
 
+        .sources-checkbox-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .sources-checkbox-grid label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: 0;
+            transition: border-color 0.2s;
+        }
+
+        .sources-checkbox-grid label:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .sources-checkbox-grid input[type="checkbox"] {
+            accent-color: var(--accent-blue);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .settings-path {
+            display: block;
+            font-size: 0.82em;
+            color: var(--accent-blue);
+            font-family: monospace;
+            margin-top: 4px;
+        }
+
         .goals-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -819,10 +860,10 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="setup-source">Source Device</label>
-                        <select id="setup-source">
-                            <option value="">-- Select Source Device --</option>
-                        </select>
+                        <label>Source Devices (select all connected to Vrroom)</label>
+                        <div id="setup-sources-checkboxes" class="sources-checkbox-grid">
+                            <!-- Populated by JS -->
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="setup-speakers">Speaker Setup</label>
@@ -908,6 +949,11 @@
                         </thead>
                         <tbody></tbody>
                     </table>
+                </div>
+
+                <!-- Download Config -->
+                <div class="card" id="setup-download-area" style="display: none; text-align: center;">
+                    <!-- Populated by JS -->
                 </div>
             </div>
         </div>
@@ -1622,9 +1668,29 @@
                 populateSelect('setup-avr', data.avrs, saved.avr);
             }
 
-            // Source dropdown
+            // Source checkboxes (multi-select)
             if (data.sources) {
-                populateSelect('setup-source', data.sources, saved.source);
+                const container = document.getElementById('setup-sources-checkboxes');
+                if (container) {
+                    const savedSources = saved.sources || [];
+                    container.innerHTML = Object.entries(data.sources).map(([key, device]) => {
+                        const isChecked = savedSources.includes(key);
+                        return `
+                            <label class="${isChecked ? 'checked' : ''}">
+                                <input type="checkbox" name="source" value="${key}" ${isChecked ? 'checked' : ''}>
+                                ${device.name}
+                            </label>
+                        `;
+                    }).join('');
+
+                    // Add change listeners
+                    container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        cb.addEventListener('change', function() {
+                            this.closest('label').classList.toggle('checked', this.checked);
+                            saveSetupToStorage();
+                        });
+                    });
+                }
             }
 
             // Speakers dropdown
@@ -1700,12 +1766,17 @@
         // =================================================================
         const STORAGE_KEY = 'vrroom_setup';
 
+        function getSelectedSources() {
+            const checkboxes = document.querySelectorAll('#setup-sources-checkboxes input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
         function saveSetupToStorage() {
             const setup = {
                 display: document.getElementById('setup-display').value,
                 hdfury_device: document.getElementById('setup-hdfury').value,
                 avr: document.getElementById('setup-avr').value,
-                source: document.getElementById('setup-source').value,
+                sources: getSelectedSources(),
                 speakers: document.getElementById('setup-speakers').value,
                 media_server: document.getElementById('setup-media-server').value,
                 goals: getSelectedGoals()
@@ -1735,7 +1806,7 @@
         }
 
         // Attach save listeners to all setup dropdowns
-        ['setup-display', 'setup-hdfury', 'setup-avr', 'setup-source', 'setup-speakers', 'setup-media-server'].forEach(id => {
+        ['setup-display', 'setup-hdfury', 'setup-avr', 'setup-speakers', 'setup-media-server'].forEach(id => {
             document.getElementById(id).addEventListener('change', saveSetupToStorage);
         });
 
@@ -1747,14 +1818,14 @@
                 display: document.getElementById('setup-display').value,
                 hdfury_device: document.getElementById('setup-hdfury').value,
                 avr: document.getElementById('setup-avr').value,
-                source: document.getElementById('setup-source').value,
+                sources: getSelectedSources(),
                 speakers: document.getElementById('setup-speakers').value,
                 media_server: document.getElementById('setup-media-server').value,
                 goals: getSelectedGoals()
             };
 
             // Validate at least something is selected
-            const hasEquipment = setupData.display || setupData.hdfury_device || setupData.avr || setupData.source;
+            const hasEquipment = setupData.display || setupData.hdfury_device || setupData.avr || setupData.sources.length > 0;
             const hasGoals = setupData.goals.length > 0;
             if (!hasEquipment && !hasGoals) {
                 alert('Please select at least one piece of equipment and one optimization goal.');
@@ -1801,6 +1872,9 @@
             // Setup summary
             const summaryGrid = document.getElementById('setup-summary-grid');
             const summary = data.setup_summary || {};
+            const sourcesDisplay = summary.sources && summary.sources.length > 0
+                ? summary.sources.join(', ')
+                : (summary.source || 'Not specified');
             summaryGrid.innerHTML = `
                 <div class="setup-summary-item">
                     <div class="setup-summary-label">Display</div>
@@ -1815,8 +1889,8 @@
                     <div class="setup-summary-value">${summary.avr || 'Not specified'}</div>
                 </div>
                 <div class="setup-summary-item">
-                    <div class="setup-summary-label">Source</div>
-                    <div class="setup-summary-value">${summary.source || 'Not specified'}</div>
+                    <div class="setup-summary-label">Sources</div>
+                    <div class="setup-summary-value">${sourcesDisplay}</div>
                 </div>
                 <div class="setup-summary-item">
                     <div class="setup-summary-label">Speakers</div>
@@ -1884,16 +1958,37 @@
             const srcSettings = data.source_settings || [];
             if (srcSettings.length > 0) {
                 srcCard.style.display = 'block';
-                srcBody.innerHTML = srcSettings.map(s => `
-                    <tr>
-                        <td><strong>${s.setting}</strong></td>
-                        <td class="setting-value">${s.value}</td>
-                        <td>${s.device || ''}</td>
-                        <td style="color: var(--text-secondary); font-size: 0.9em;">${s.reason || ''}</td>
-                    </tr>
-                `).join('');
+                srcBody.innerHTML = srcSettings.map(s => {
+                    const pathHtml = s.path
+                        ? `<div class="settings-path">${s.path}</div>`
+                        : '';
+                    return `
+                        <tr>
+                            <td><strong>${s.setting}</strong></td>
+                            <td class="setting-value">${s.value}${pathHtml}</td>
+                            <td>${s.device || ''}</td>
+                            <td style="color: var(--text-secondary); font-size: 0.9em;">${s.reason || ''}</td>
+                        </tr>
+                    `;
+                }).join('');
             } else {
                 srcCard.style.display = 'none';
+            }
+
+            // Download config button
+            const downloadArea = document.getElementById('setup-download-area');
+            if (data.download_filename && downloadArea) {
+                downloadArea.style.display = 'block';
+                downloadArea.innerHTML = `
+                    <a href="/api/download/${data.download_filename}" class="btn btn-large" style="display: inline-block; text-decoration: none; text-align: center;">
+                        Download Vrroom Config
+                    </a>
+                    <p style="color: var(--text-secondary); margin-top: 8px; font-size: 0.9em;">
+                        Import this config via Vrroom web interface: CONFIG &rarr; IMPORT
+                    </p>
+                `;
+            } else if (downloadArea) {
+                downloadArea.style.display = 'none';
             }
         }
 
