@@ -7,6 +7,7 @@ Optimizes configs for minimal HDMI handshake delays (bonk) and LLDV support
 import copy
 import json
 import os
+import socket
 import subprocess
 import shutil
 import uuid
@@ -21,6 +22,144 @@ app.config['EXPORT_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__fil
 # Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
+
+
+# =============================================================================
+# Vrroom IP Connection
+# =============================================================================
+
+class VrroomConnection:
+    """Connect to Vrroom via TCP/Telnet to query settings."""
+
+    DEFAULT_PORT = 2222
+    TIMEOUT = 5  # seconds
+
+    # Settings to query from Vrroom
+    SETTINGS_TO_QUERY = [
+        "opmode", "insel", "dhcp", "ipaddr", "autosw",
+        "edidmode", "edidfrlflag", "edidfrlmode", "edidvrrflag", "edidallmflag",
+        "edidhdrflag", "edidhdrmode", "ediddvflag", "ediddvmode",
+        "edidtruehdflag", "edidtruehdmode", "edidddflag", "edidddplusflag",
+        "ediddtsflag", "ediddtshdflag", "edidpcmflag", "edidpcmchmode",
+        "hdcp", "hdrcustom", "hdrdisable", "cec",
+        "earcforce", "jvcmacro", "oled", "oledfade"
+    ]
+
+    STATUS_QUERIES = ["rx0", "tx0", "tx1", "tx0sink", "tx1sink", "aud0", "audout"]
+
+    def __init__(self, ip_address, port=None):
+        self.ip_address = ip_address
+        self.port = port or self.DEFAULT_PORT
+        self.socket = None
+
+    def connect(self):
+        """Establish TCP connection to Vrroom."""
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.settimeout(self.TIMEOUT)
+            self.socket.connect((self.ip_address, self.port))
+            return True
+        except socket.timeout:
+            raise ConnectionError(f"Connection to {self.ip_address}:{self.port} timed out")
+        except socket.error as e:
+            raise ConnectionError(f"Failed to connect to {self.ip_address}:{self.port}: {e}")
+
+    def disconnect(self):
+        """Close the connection."""
+        if self.socket:
+            try:
+                self.socket.close()
+            except Exception:
+                pass
+            self.socket = None
+
+    def send_command(self, command):
+        """Send a command and receive response."""
+        if not self.socket:
+            raise ConnectionError("Not connected")
+
+        try:
+            # IP mode doesn't need #vrroom prefix
+            cmd = f"{command}\r\n"
+            self.socket.sendall(cmd.encode('utf-8'))
+
+            # Read response
+            response = b""
+            while True:
+                try:
+                    chunk = self.socket.recv(1024)
+                    if not chunk:
+                        break
+                    response += chunk
+                    # Check if we have a complete response (ends with \r\n)
+                    if response.endswith(b"\r\n"):
+                        break
+                except socket.timeout:
+                    break
+
+            return response.decode('utf-8').strip()
+        except socket.error as e:
+            raise ConnectionError(f"Communication error: {e}")
+
+    def get_setting(self, setting):
+        """Query a single setting."""
+        response = self.send_command(f"get {setting}")
+        # Response format is typically "setting value" or just "value"
+        parts = response.split()
+        if len(parts) >= 2:
+            return parts[-1]  # Return last part as value
+        return response
+
+    def get_all_settings(self):
+        """Query all relevant settings from Vrroom."""
+        settings = {}
+
+        for setting in self.SETTINGS_TO_QUERY:
+            try:
+                value = self.get_setting(setting)
+                if value and value.lower() not in ["error", "unknown"]:
+                    settings[setting] = value
+            except Exception:
+                continue  # Skip settings that fail
+
+        return settings
+
+    def get_status(self):
+        """Get current signal status."""
+        status = {}
+
+        for query in self.STATUS_QUERIES:
+            try:
+                response = self.send_command(f"get status {query}")
+                if response:
+                    status[query] = response
+            except Exception:
+                continue
+
+        return status
+
+    def fetch_config(self):
+        """Fetch complete configuration from Vrroom."""
+        try:
+            self.connect()
+            settings = self.get_all_settings()
+            status = self.get_status()
+
+            return {
+                "success": True,
+                "ip_address": self.ip_address,
+                "settings": settings,
+                "status": status,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "ip_address": self.ip_address
+            }
+        finally:
+            self.disconnect()
 
 
 # =============================================================================
@@ -40,6 +179,8 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 2500,
             "recommended_edid": "automix",
+            "vrr_support": False,
+            "allm_support": False,
             "notes": "Use LLDV for Dolby Vision content. Native HDR10 support excellent."
         },
         "jvc_dla_nz8": {
@@ -53,6 +194,8 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 3000,
             "recommended_edid": "automix",
+            "vrr_support": False,
+            "allm_support": False,
             "notes": "Excellent tone mapping. Consider RS232 macros for lens memory."
         },
         "jvc_dla_nz7": {
@@ -66,6 +209,8 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 3000,
             "recommended_edid": "automix",
+            "vrr_support": False,
+            "allm_support": False,
             "notes": "E-shift 4K. Good candidate for LLDV via Vrroom."
         },
         "sony_vpl_xw7000": {
@@ -79,6 +224,8 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 2000,
             "recommended_edid": "automix",
+            "vrr_support": False,
+            "allm_support": False,
             "notes": "Native 4K panel. Fast HDMI handshake."
         },
         "lg_c3_oled": {
@@ -92,6 +239,8 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 1500,
             "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
             "notes": "Native DV support. LLDV not required but Vrroom can still optimize handshake."
         },
         "samsung_qn90c": {
@@ -105,6 +254,8 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 1800,
             "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
             "notes": "No DV support. Use HDR10+ when available, HDR10 fallback."
         },
         "sony_a95l_oled": {
@@ -118,6 +269,8 @@ DEVICE_PROFILES = {
             "hdcp": "2.3",
             "handshake_time_ms": 1600,
             "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
             "notes": "Native DV with excellent QD-OLED HDR."
         }
     },
@@ -624,6 +777,56 @@ OPTIMIZATION_GOALS = {
 }
 
 
+def _get_settings_path(device_id, setting_type):
+    """Get step-by-step navigation path for a device setting."""
+    paths = {
+        "nvidia_shield_pro": {
+            "resolution": "Settings > Device Preferences > Display & Sound > Resolution",
+            "frame_rate": "Settings > Device Preferences > Display & Sound > Match content frame rate",
+            "hdr": "Settings > Device Preferences > Display & Sound > Dynamic range > set to Auto",
+            "audio": "Settings > Device Preferences > Display & Sound > Advanced sound settings > Surround sound > Auto",
+            "dv": "Settings > Device Preferences > Display & Sound > Dolby Vision > set to Enabled"
+        },
+        "apple_tv_4k": {
+            "resolution": "Settings > Video and Audio > Format > 4K SDR 60Hz",
+            "frame_rate": "Settings > Video and Audio > Match Content > Match Frame Rate > On",
+            "hdr": "Settings > Video and Audio > Match Content > Match Dynamic Range > On",
+            "audio": "Settings > Video and Audio > Audio Format > Dolby Atmos (if available)",
+            "dv": "Settings > Video and Audio > Match Content > Match Dynamic Range > On (enables DV when available)"
+        },
+        "xbox_series_x": {
+            "resolution": "Settings > General > TV & Display Options > Resolution > 4K UHD",
+            "frame_rate": "Settings > General > TV & Display Options > Refresh Rate > 120 Hz",
+            "hdr": "Settings > General > TV & Display Options > Video Modes > Allow HDR10 > checked",
+            "audio": "Settings > General > Volume & Audio Output > HDMI audio > Bitstream out > Dolby Atmos for Home Theater",
+            "vrr": "Settings > General > TV & Display Options > Video Modes > Allow Variable Refresh Rate > checked",
+            "allm": "Settings > General > TV & Display Options > Video Modes > Allow Auto Low Latency Mode > checked"
+        },
+        "ps5": {
+            "resolution": "Settings > Screen and Video > Video Output > Resolution > 2160p",
+            "frame_rate": "Settings > Screen and Video > Video Output > Enable 120 Hz Output > Automatic",
+            "hdr": "Settings > Screen and Video > Video Output > HDR > On When Supported",
+            "audio": "Settings > Sound > Audio Output > Audio Format (Priority) > Bitstream (Dolby)",
+            "vrr": "Settings > Screen and Video > Video Output > VRR > Automatic"
+        },
+        "zidoo_z9x_pro": {
+            "resolution": "Settings > Display > Resolution > 3840x2160p Auto",
+            "frame_rate": "Settings > Display > Match Frame Rate > On",
+            "hdr": "Settings > Display > HDR > Auto",
+            "audio": "Settings > Audio > HDMI Audio > Auto",
+            "dv": "Settings > Display > Dolby Vision > VS10 Engine"
+        },
+        "kaleidescape_strato": {
+            "resolution": "Kaleidescape App > Settings > Video > Output Resolution > Auto",
+            "frame_rate": "Kaleidescape App > Settings > Video > Match Frame Rate > On",
+            "hdr": "Kaleidescape App > Settings > Video > HDR > Auto",
+            "audio": "Kaleidescape App > Settings > Audio > Digital Audio > Bitstream"
+        }
+    }
+    device_paths = paths.get(device_id, {})
+    return device_paths.get(setting_type, "")
+
+
 # =============================================================================
 # Setup Recommendation Engine
 # =============================================================================
@@ -635,15 +838,33 @@ class SetupRecommendationEngine:
         self.display_id = setup.get("display", "")
         self.hdfury_id = setup.get("hdfury_device", "")
         self.avr_id = setup.get("avr", "")
-        self.source_id = setup.get("source", "")
         self.speaker_id = setup.get("speakers", "")
         self.media_server_id = setup.get("media_server", "")
         self.goals = setup.get("goals", [])
 
+        # Support multiple sources (Vrroom is a 4x2 matrix)
+        sources_input = setup.get("sources", [])
+        # Backwards compat: single source string
+        if not sources_input:
+            single = setup.get("source", "")
+            sources_input = [single] if single else []
+        elif isinstance(sources_input, str):
+            sources_input = [sources_input]
+
+        self.source_ids = [s for s in sources_input if s]
+        self.sources = []
+        for sid in self.source_ids:
+            profile = DEVICE_PROFILES["sources"].get(sid, {})
+            if profile:
+                self.sources.append((sid, profile))
+
+        # Keep first source as primary for backwards compat
+        self.source_id = self.source_ids[0] if self.source_ids else ""
+        self.source = self.sources[0][1] if self.sources else {}
+
         self.display = DEVICE_PROFILES["displays"].get(self.display_id, {})
         self.hdfury = DEVICE_PROFILES["hdfury_devices"].get(self.hdfury_id, {})
         self.avr = DEVICE_PROFILES["avrs"].get(self.avr_id, {})
-        self.source = DEVICE_PROFILES["sources"].get(self.source_id, {})
         self.speakers = DEVICE_PROFILES["speakers"].get(self.speaker_id, {})
         self.media_server = DEVICE_PROFILES["media_servers"].get(self.media_server_id, {})
 
@@ -679,24 +900,37 @@ class SetupRecommendationEngine:
         seen_src = set()
         unique_src = []
         for s in source_settings:
-            key = s["setting"]
+            key = (s["setting"], s.get("device", ""))
             if key not in seen_src:
                 seen_src.add(key)
                 unique_src.append(s)
+
+        # Generate downloadable Vrroom config file
+        config_filename = None
+        if vrroom_settings:
+            config_data = {**vrroom_settings}
+            config_filename = f"vrroom_recommended_{uuid.uuid4().hex[:8]}.json"
+            filepath = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), 'exports', config_filename
+            )
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            with open(filepath, "w") as f:
+                json.dump(config_data, f, indent=2)
 
         return {
             "setup_summary": {
                 "display": self.display.get("name", "Not specified"),
                 "hdfury_device": self.hdfury.get("name", "Not specified"),
                 "avr": self.avr.get("name", "Not specified"),
-                "source": self.source.get("name", "Not specified"),
+                "sources": [s[1].get("name", "Unknown") for s in self.sources] if self.sources else ["Not specified"],
                 "speakers": self.speakers.get("name", "Not specified"),
                 "media_server": self.media_server.get("name", "Not specified"),
                 "goals": [OPTIMIZATION_GOALS[g]["name"] for g in self.goals if g in OPTIMIZATION_GOALS]
             },
             "recommendations": unique_recs,
             "vrroom_settings": vrroom_settings,
-            "source_settings": unique_src
+            "source_settings": unique_src,
+            "download_filename": config_filename
         }
 
     def _general_equipment_recs(self):
@@ -727,21 +961,23 @@ class SetupRecommendationEngine:
                                    "lossless Atmos/DTS:X passthrough."
                 })
 
-        if self.source:
-            source_name = self.source.get("name", "source")
-            if self.source.get("match_frame_rate"):
+        for source_id, source in self.sources:
+            source_name = source.get("name", "source")
+            if source.get("match_frame_rate"):
                 source_settings.append({
-                    "setting": "Match Frame Rate",
+                    "setting": f"Match Frame Rate ({source_name})",
                     "value": "Enabled",
                     "device": source_name,
-                    "reason": "Prevents unnecessary refresh rate changes."
+                    "reason": "Prevents unnecessary refresh rate changes.",
+                    "path": _get_settings_path(source_id, "frame_rate")
                 })
-            if self.source.get("match_resolution"):
+            if source.get("match_resolution"):
                 source_settings.append({
-                    "setting": "Match Resolution",
+                    "setting": f"Match Resolution ({source_name})",
                     "value": "Enabled",
                     "device": source_name,
-                    "reason": "Outputs content at native resolution."
+                    "reason": "Outputs content at native resolution.",
+                    "path": _get_settings_path(source_id, "resolution")
                 })
 
         return {"recommendations": recs, "vrroom_settings": settings, "source_settings": source_settings}
@@ -781,13 +1017,16 @@ class SetupRecommendationEngine:
                                "output 4K to avoid resolution-change-triggered handshakes. Only frame rate "
                                "and HDR mode should change."
             })
-            if self.source:
-                src.append({
-                    "setting": "Output Resolution",
-                    "value": "4K (fixed)",
-                    "device": self.source.get("name", "Source"),
-                    "reason": "Prevents resolution-change handshake delays on slow displays."
-                })
+            for source_id, source in self.sources:
+                source_name = source.get("name", "Source")
+                if self.display and self.display.get("handshake_time_ms", 0) >= 2500:
+                    src.append({
+                        "setting": f"Output Resolution ({source_name})",
+                        "value": "4K (fixed)",
+                        "device": source_name,
+                        "reason": "Prevents resolution-change handshake delays on slow displays.",
+                        "path": _get_settings_path(source_id, "resolution")
+                    })
 
         if self.media_server:
             server_name = self.media_server.get("name", "media server")
@@ -896,17 +1135,19 @@ class SetupRecommendationEngine:
             })
 
         if has_atmos:
-            src.append({
-                "setting": "Audio Output",
-                "value": "Bitstream (passthrough)",
-                "device": self.source.get("name", "Source") if self.source else "Source",
-                "reason": "Bitstream passes lossless Atmos/DTS:X to AVR for decoding."
-            })
+            for source_id, source in self.sources:
+                src.append({
+                    "setting": f"Audio Output ({source.get('name', 'Source')})",
+                    "value": "Bitstream (passthrough)",
+                    "device": source.get("name", "Source"),
+                    "reason": "Bitstream passes lossless Atmos/DTS:X to AVR for decoding.",
+                    "path": _get_settings_path(source_id, "audio")
+                })
             recs.append({
                 "severity": "info",
                 "title": "Atmos Speaker Layout Detected",
                 "description": f"Your {self.speakers.get('name', '')} setup supports Atmos. "
-                               "Ensure source is set to bitstream output for lossless audio passthrough."
+                               "Ensure all sources are set to bitstream output for lossless audio passthrough."
             })
 
         # Unmute delay for audio
@@ -927,26 +1168,58 @@ class SetupRecommendationEngine:
         settings = {}
         src = []
 
-        if self.hdfury and self.hdfury.get("vrr_support"):
-            recs.append({
-                "severity": "critical",
-                "title": "VRR Passthrough Supported",
-                "description": "Your HDFury device supports VRR passthrough. Ensure VRR is enabled on both "
-                               "source and display for tear-free gaming."
-            })
-        elif self.hdfury:
+        # Check display VRR/ALLM support
+        display_vrr = self.display.get("vrr_support", False) if self.display else False
+        display_allm = self.display.get("allm_support", False) if self.display else False
+        hdfury_vrr = self.hdfury.get("vrr_support", False) if self.hdfury else False
+        hdfury_allm = self.hdfury.get("allm_support", False) if self.hdfury else False
+
+        if not display_vrr and self.display:
             recs.append({
                 "severity": "warning",
-                "title": "No VRR Support on HDFury Device",
-                "description": f"{self.hdfury.get('name', 'Your HDFury device')} does not support VRR passthrough. "
-                               "Gaming will work but without variable refresh rate."
+                "title": f"{self.display.get('name', 'Your Display')} Does Not Support VRR",
+                "description": "Your display does not support Variable Refresh Rate (VRR). "
+                               "Gaming will work at fixed refresh rates. VRR passthrough in "
+                               "the Vrroom will have no effect for this display."
             })
 
-        if self.hdfury and self.hdfury.get("allm_support"):
+        if not display_allm and self.display:
             recs.append({
                 "severity": "info",
-                "title": "ALLM (Auto Low Latency Mode) Available",
+                "title": f"{self.display.get('name', 'Your Display')} Does Not Support ALLM",
+                "description": "Auto Low Latency Mode is not supported by your display. "
+                               "You may need to manually switch to game/fast mode on your display when gaming."
+            })
+
+        if hdfury_vrr and display_vrr:
+            recs.append({
+                "severity": "critical",
+                "title": "Enable VRR Passthrough",
+                "description": "Both your HDFury device and display support VRR. Enable VRR passthrough "
+                               "for tear-free gaming."
+            })
+            settings["edidvrrflag"] = "on"
+        elif hdfury_vrr and not display_vrr:
+            recs.append({
+                "severity": "info",
+                "title": "VRR Passthrough Available but Display Incompatible",
+                "description": "Your Vrroom supports VRR passthrough but your display does not accept VRR. "
+                               "VRR flag will not be added to EDID."
+            })
+
+        if hdfury_allm and display_allm:
+            settings["edidallmflag"] = "on"
+            recs.append({
+                "severity": "info",
+                "title": "ALLM Passthrough Enabled",
                 "description": "ALLM will automatically switch your display to game mode when gaming content is detected."
+            })
+        elif hdfury_allm and not display_allm:
+            recs.append({
+                "severity": "info",
+                "title": "ALLM Passthrough Available but Display Incompatible",
+                "description": "Your Vrroom supports ALLM passthrough but your display does not support it. "
+                               "Manually switch your display to game/fast mode when gaming."
             })
 
         settings["hdrcustom"] = "off"
@@ -957,13 +1230,17 @@ class SetupRecommendationEngine:
                            "signals, but explicitly disabling it avoids edge cases."
         })
 
-        if self.source and self.source.get("max_refresh", 0) >= 120:
-            src.append({
-                "setting": "Output Resolution",
-                "value": "4K 120Hz",
-                "device": self.source.get("name", "Source"),
-                "reason": "Maximum refresh rate for smoothest gaming."
-            })
+        # Generate source settings for ALL gaming-capable sources
+        for source_id, source in self.sources:
+            source_name = source.get("name", "Source")
+            if source.get("max_refresh", 0) >= 120:
+                src.append({
+                    "setting": f"Output Resolution ({source_name})",
+                    "value": "4K 120Hz",
+                    "device": source_name,
+                    "reason": "Maximum refresh rate for smoothest gaming.",
+                    "path": _get_settings_path(source_id, "resolution")
+                })
 
         settings["unmutedelay"] = 100
         recs.append({
@@ -1549,6 +1826,101 @@ def analyze_config():
         results["download_filename"] = filename
 
     return jsonify(results)
+
+
+@app.route("/api/vrroom/connect", methods=["POST"])
+def vrroom_connect():
+    """Connect to Vrroom by IP and fetch current configuration."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    ip_address = data.get("ip_address", "").strip()
+    port = data.get("port", VrroomConnection.DEFAULT_PORT)
+
+    if not ip_address:
+        return jsonify({"error": "IP address is required"}), 400
+
+    # Basic IP validation
+    parts = ip_address.split(".")
+    if len(parts) != 4:
+        return jsonify({"error": "Invalid IP address format"}), 400
+    try:
+        for part in parts:
+            num = int(part)
+            if num < 0 or num > 255:
+                raise ValueError()
+    except ValueError:
+        return jsonify({"error": "Invalid IP address"}), 400
+
+    try:
+        port = int(port)
+    except (ValueError, TypeError):
+        port = VrroomConnection.DEFAULT_PORT
+
+    connection = VrroomConnection(ip_address, port)
+    result = connection.fetch_config()
+
+    if result["success"]:
+        # Also run analysis on the fetched settings
+        settings = result.get("settings", {})
+        status = result.get("status", {})
+
+        # Build a config-like structure for analysis
+        config_data = {**settings}
+
+        # Add status info
+        result["analysis"] = {
+            "settings_count": len(settings),
+            "status_count": len(status),
+            "edid_mode": settings.get("edidmode", "unknown"),
+            "dv_enabled": settings.get("ediddvflag", "off") == "on",
+            "hdr_enabled": settings.get("edidhdrflag", "off") == "on",
+            "cec_enabled": settings.get("cec", "off") == "on",
+        }
+
+        return jsonify(result)
+    else:
+        return jsonify(result), 500
+
+
+@app.route("/api/vrroom/command", methods=["POST"])
+def vrroom_command():
+    """Send a command to Vrroom (for applying settings)."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    ip_address = data.get("ip_address", "").strip()
+    command = data.get("command", "").strip()
+    port = data.get("port", VrroomConnection.DEFAULT_PORT)
+
+    if not ip_address:
+        return jsonify({"error": "IP address is required"}), 400
+    if not command:
+        return jsonify({"error": "Command is required"}), 400
+
+    # Security: only allow 'get' and 'set' commands
+    cmd_lower = command.lower()
+    if not (cmd_lower.startswith("get ") or cmd_lower.startswith("set ")):
+        return jsonify({"error": "Only 'get' and 'set' commands are allowed"}), 400
+
+    try:
+        connection = VrroomConnection(ip_address, int(port))
+        connection.connect()
+        response = connection.send_command(command)
+        connection.disconnect()
+
+        return jsonify({
+            "success": True,
+            "command": command,
+            "response": response
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 @app.route("/api/analyze/preroll", methods=["POST"])

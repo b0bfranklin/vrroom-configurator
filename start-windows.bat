@@ -290,19 +290,30 @@ echo   Checking for winget...
 where winget >nul 2>&1
 if errorlevel 1 (
     echo   winget not available. Opening FFmpeg download page...
-    start https://ffmpeg.org/download.html
+    start https://www.gyan.dev/ffmpeg/builds/
     echo.
-    echo   Download FFmpeg and add it to your PATH.
+    echo   Download FFmpeg, extract, and add the bin folder to your PATH.
     echo   Then restart this script.
     pause
     goto :eof
 )
-echo   Installing FFmpeg via winget...
-winget install FFmpeg.FFmpeg --accept-package-agreements --accept-source-agreements
+echo   Installing FFmpeg via winget (Gyan.FFmpeg)...
+winget install -e --id Gyan.FFmpeg --accept-package-agreements --accept-source-agreements
 if errorlevel 1 (
-    echo   FFmpeg installation failed. You can install it later.
+    echo.
+    echo   FFmpeg installation failed or package not found.
+    echo   You can install manually from: https://www.gyan.dev/ffmpeg/builds/
+    echo   Download, extract, and add the bin folder to your PATH.
 ) else (
-    echo   FFmpeg installed successfully!
+    where ffprobe >nul 2>&1
+    if errorlevel 1 (
+        echo.
+        echo   FFmpeg package installed, but ffprobe is not yet in PATH.
+        echo   You may need to restart this script or add the FFmpeg bin
+        echo   folder to your PATH manually.
+    ) else (
+        echo   FFmpeg installed and verified successfully!
+    )
     set FFMPEG_OK=1
     echo.
     echo   NOTE: You may need to restart this script for FFmpeg
