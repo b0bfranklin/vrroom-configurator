@@ -872,6 +872,12 @@
                         </select>
                     </div>
                     <div class="form-group">
+                        <label for="setup-screen">Screen (Projector Only)</label>
+                        <select id="setup-screen">
+                            <option value="">-- Select Screen --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="setup-media-server">Media Server</label>
                         <select id="setup-media-server">
                             <option value="">-- Select Media Server --</option>
@@ -944,6 +950,42 @@
                                 <th>Setting</th>
                                 <th>Value</th>
                                 <th>Device</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- AVR / Receiver Settings -->
+                <div class="card" id="setup-avr-settings-card" style="display: none;">
+                    <h2>AVR / Receiver Settings</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Configure these settings on your AV receiver for optimal speaker and audio performance.
+                    </p>
+                    <table class="settings-table" id="setup-avr-settings-table">
+                        <thead>
+                            <tr>
+                                <th>Setting</th>
+                                <th>Value</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+
+                <!-- Display / Projector Settings -->
+                <div class="card" id="setup-display-settings-card" style="display: none;">
+                    <h2>Display / Projector Settings</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Optimize your display or projector with these recommended settings.
+                    </p>
+                    <table class="settings-table" id="setup-display-settings-table">
+                        <thead>
+                            <tr>
+                                <th>Setting</th>
+                                <th>Value</th>
                                 <th>Reason</th>
                             </tr>
                         </thead>
@@ -1105,6 +1147,11 @@
             <div class="card">
                 <h2>Speaker Setups</h2>
                 <div class="device-grid" id="speakers-grid"></div>
+            </div>
+
+            <div class="card">
+                <h2>Screens</h2>
+                <div class="device-grid" id="screens-grid"></div>
             </div>
 
             <div class="card">
@@ -1601,6 +1648,9 @@
                 if (data.speakers) {
                     displayDevices('speakers-grid', data.speakers);
                 }
+                if (data.screens) {
+                    displayDevices('screens-grid', data.screens);
+                }
                 if (data.media_servers) {
                     displayDevices('media-servers-grid', data.media_servers);
                 }
@@ -1642,6 +1692,17 @@
                         ${device.preroll_support !== undefined ? `<dt>Pre-roll</dt><dd>${device.preroll_support ? 'Yes' : 'No'}</dd>` : ''}
                         ${device.dv_output !== undefined ? `<dt>DV Output</dt><dd>${device.dv_output ? 'Yes' : 'No'}</dd>` : ''}
                         ${device.lldv_output !== undefined ? `<dt>LLDV Output</dt><dd>${device.lldv_output ? 'Yes' : 'No'}</dd>` : ''}
+                        ${device.size_inches ? `<dt>Size</dt><dd>${device.size_inches}"</dd>` : ''}
+                        ${device.aspect_ratio ? `<dt>Aspect Ratio</dt><dd>${device.aspect_ratio}</dd>` : ''}
+                        ${device.material ? `<dt>Material</dt><dd>${device.material}</dd>` : ''}
+                        ${device.gain !== undefined ? `<dt>Gain</dt><dd>${device.gain}</dd>` : ''}
+                        ${device.acoustically_transparent !== undefined ? `<dt>Acoustically Transparent</dt><dd>${device.acoustically_transparent ? 'Yes' : 'No'}</dd>` : ''}
+                        ${device.ambient_light_rejecting !== undefined ? `<dt>ALR</dt><dd>${device.ambient_light_rejecting ? 'Yes' : 'No'}</dd>` : ''}
+                        ${device.max_channels ? `<dt>Max Channels</dt><dd>${device.max_channels}</dd>` : ''}
+                        ${device.room_correction ? `<dt>Room Correction</dt><dd>${device.room_correction}</dd>` : ''}
+                        ${device.light_source ? `<dt>Light Source</dt><dd>${device.light_source}</dd>` : ''}
+                        ${device.panel_tech ? `<dt>Panel Tech</dt><dd>${device.panel_tech}</dd>` : ''}
+                        ${device.lens_memory !== undefined ? `<dt>Lens Memory</dt><dd>${device.lens_memory ? 'Yes' : 'No'}</dd>` : ''}
                     </dl>
                     ${device.notes ? `<div class="device-notes">${device.notes}</div>` : ''}
                 </div>
@@ -1696,6 +1757,11 @@
             // Speakers dropdown
             if (data.speakers) {
                 populateSelect('setup-speakers', data.speakers, saved.speakers);
+            }
+
+            // Screen dropdown
+            if (data.screens) {
+                populateSelect('setup-screen', data.screens, saved.screen);
             }
 
             // Media Server dropdown
@@ -1778,6 +1844,7 @@
                 avr: document.getElementById('setup-avr').value,
                 sources: getSelectedSources(),
                 speakers: document.getElementById('setup-speakers').value,
+                screen: document.getElementById('setup-screen').value,
                 media_server: document.getElementById('setup-media-server').value,
                 goals: getSelectedGoals()
             };
@@ -1806,7 +1873,7 @@
         }
 
         // Attach save listeners to all setup dropdowns
-        ['setup-display', 'setup-hdfury', 'setup-avr', 'setup-speakers', 'setup-media-server'].forEach(id => {
+        ['setup-display', 'setup-hdfury', 'setup-avr', 'setup-speakers', 'setup-screen', 'setup-media-server'].forEach(id => {
             document.getElementById(id).addEventListener('change', saveSetupToStorage);
         });
 
@@ -1820,6 +1887,7 @@
                 avr: document.getElementById('setup-avr').value,
                 sources: getSelectedSources(),
                 speakers: document.getElementById('setup-speakers').value,
+                screen: document.getElementById('setup-screen').value,
                 media_server: document.getElementById('setup-media-server').value,
                 goals: getSelectedGoals()
             };
@@ -1875,6 +1943,7 @@
             const sourcesDisplay = summary.sources && summary.sources.length > 0
                 ? summary.sources.join(', ')
                 : (summary.source || 'Not specified');
+            const screenDisplay = summary.screen && summary.screen !== 'Not specified' ? summary.screen : '';
             summaryGrid.innerHTML = `
                 <div class="setup-summary-item">
                     <div class="setup-summary-label">Display</div>
@@ -1896,6 +1965,10 @@
                     <div class="setup-summary-label">Speakers</div>
                     <div class="setup-summary-value">${summary.speakers || 'Not specified'}</div>
                 </div>
+                ${screenDisplay ? `<div class="setup-summary-item">
+                    <div class="setup-summary-label">Screen</div>
+                    <div class="setup-summary-value">${screenDisplay}</div>
+                </div>` : ''}
                 <div class="setup-summary-item">
                     <div class="setup-summary-label">Media Server</div>
                     <div class="setup-summary-value">${summary.media_server || 'Not specified'}</div>
@@ -1973,6 +2046,50 @@
                 }).join('');
             } else {
                 srcCard.style.display = 'none';
+            }
+
+            // AVR / Receiver Settings
+            const avrCard = document.getElementById('setup-avr-settings-card');
+            const avrBody = document.querySelector('#setup-avr-settings-table tbody');
+            const avrSettings = data.avr_settings || [];
+            if (avrSettings.length > 0) {
+                avrCard.style.display = 'block';
+                avrBody.innerHTML = avrSettings.map(s => {
+                    const pathHtml = s.path
+                        ? `<div class="settings-path">${s.path}</div>`
+                        : '';
+                    return `
+                        <tr>
+                            <td><strong>${s.setting}</strong></td>
+                            <td class="setting-value">${s.value}${pathHtml}</td>
+                            <td style="color: var(--text-secondary); font-size: 0.9em;">${s.reason || ''}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                avrCard.style.display = 'none';
+            }
+
+            // Display / Projector Settings
+            const dispCard = document.getElementById('setup-display-settings-card');
+            const dispBody = document.querySelector('#setup-display-settings-table tbody');
+            const dispSettings = data.display_settings || [];
+            if (dispSettings.length > 0) {
+                dispCard.style.display = 'block';
+                dispBody.innerHTML = dispSettings.map(s => {
+                    const pathHtml = s.path
+                        ? `<div class="settings-path">${s.path}</div>`
+                        : '';
+                    return `
+                        <tr>
+                            <td><strong>${s.setting}</strong></td>
+                            <td class="setting-value">${s.value}${pathHtml}</td>
+                            <td style="color: var(--text-secondary); font-size: 0.9em;">${s.reason || ''}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } else {
+                dispCard.style.display = 'none';
             }
 
             // Download config button
