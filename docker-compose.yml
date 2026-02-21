@@ -1,0 +1,19 @@
+services:
+  vrroom-configurator:
+    build: .
+    container_name: vrroom-configurator
+    ports:
+      - "5000:5000"
+    volumes:
+      # Mount EDID collection for reference (read-only)
+      - ./HDfury_EDID_collection:/app/edid:ro
+      # Mount firmware docs for reference (read-only)
+      - ./VRRoom_FW_63:/app/firmware:ro
+      # Persist exports between restarts
+      - vrroom-exports:/app/exports
+    restart: unless-stopped
+    environment:
+      - FLASK_DEBUG=0
+
+volumes:
+  vrroom-exports:
