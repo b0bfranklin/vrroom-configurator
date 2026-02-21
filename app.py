@@ -418,6 +418,18 @@ DEVICE_PROFILES = {
             "recommended_audio_format": "bitstream",
             "notes": "Entry Atmos. 2 overhead channels for height effects."
         },
+        "atmos_5_2_2": {
+            "name": "5.2.2 Atmos",
+            "type": "speaker",
+            "layout": "5.2.2",
+            "atmos_capable": True,
+            "dtsx_capable": True,
+            "channels": 5,
+            "overhead_channels": 2,
+            "sub_channels": 2,
+            "recommended_audio_format": "bitstream",
+            "notes": "Atmos with dual subs and 2 overhead channels. Dual subs provide even bass distribution."
+        },
         "atmos_5_1_4": {
             "name": "5.1.4 Atmos",
             "type": "speaker",
@@ -639,7 +651,6 @@ class SetupRecommendationEngine:
         """Generate full recommendation set."""
         recommendations = []
         vrroom_settings = {}
-        rs232_commands = []
         source_settings = []
 
         for goal_id in self.goals:
@@ -648,7 +659,6 @@ class SetupRecommendationEngine:
                 result = handler()
                 recommendations.extend(result.get("recommendations", []))
                 vrroom_settings.update(result.get("vrroom_settings", {}))
-                rs232_commands.extend(result.get("rs232_commands", []))
                 source_settings.extend(result.get("source_settings", []))
 
         # Add general recommendations based on equipment
@@ -665,13 +675,6 @@ class SetupRecommendationEngine:
             if key not in seen_recs:
                 seen_recs.add(key)
                 unique_recs.append(rec)
-
-        seen_cmds = set()
-        unique_cmds = []
-        for cmd in rs232_commands:
-            if cmd not in seen_cmds:
-                seen_cmds.add(cmd)
-                unique_cmds.append(cmd)
 
         seen_src = set()
         unique_src = []
@@ -693,7 +696,6 @@ class SetupRecommendationEngine:
             },
             "recommendations": unique_recs,
             "vrroom_settings": vrroom_settings,
-            "rs232_commands": unique_cmds,
             "source_settings": unique_src
         }
 
@@ -748,7 +750,6 @@ class SetupRecommendationEngine:
         """Recommendations for avoiding HDMI bonk/blank screen."""
         recs = []
         settings = {}
-        cmds = []
         src = []
 
         recs.append({
@@ -760,7 +761,6 @@ class SetupRecommendationEngine:
         })
 
         settings["edidmode"] = "automix"
-        cmds.append("#vrroom set edidmode automix")
 
         unmute = 200
         if self.avr and self.avr.get("handshake_time_ms", 0) > 500:
@@ -798,13 +798,12 @@ class SetupRecommendationEngine:
                                "This prevents the format switch that causes bonk between pre-roll and feature."
             })
 
-        return {"recommendations": recs, "vrroom_settings": settings, "rs232_commands": cmds, "source_settings": src}
+        return {"recommendations": recs, "vrroom_settings": settings, "source_settings": src}
 
     def _goal_lldv_non_dv(self):
         """Recommendations for LLDV on non-DV displays."""
         recs = []
         settings = {}
-        cmds = []
 
         if self.display and self.display.get("native_dv"):
             recs.append({
@@ -814,8 +813,7 @@ class SetupRecommendationEngine:
                                "LLDV conversion is not required, but Vrroom can still pass DV through."
             })
             settings["ediddvflag"] = "on"
-            cmds.append("#vrroom set ediddvflag on")
-            return {"recommendations": recs, "vrroom_settings": settings, "rs232_commands": cmds, "source_settings": []}
+            return {"recommendations": recs, "vrroom_settings": settings, "source_settings": []}
 
         if self.hdfury and not self.hdfury.get("lldv_support"):
             recs.append({
@@ -824,21 +822,13 @@ class SetupRecommendationEngine:
                 "description": f"{self.hdfury.get('name', 'Your HDFury device')} does not support LLDV injection. "
                                "Consider upgrading to Vrroom or Diva for LLDV capability."
             })
-            return {"recommendations": recs, "vrroom_settings": {}, "rs232_commands": [], "source_settings": []}
+            return {"recommendations": recs, "vrroom_settings": {}, "source_settings": []}
 
         settings["edidmode"] = "automix"
         settings["ediddvflag"] = "on"
         settings["ediddvmode"] = 1  # Custom mode for LLDV
         settings["edidhdrflag"] = "on"
         settings["edidhdrmode"] = 1  # HDR10/HLG
-
-        cmds.extend([
-            "#vrroom set edidmode automix",
-            "#vrroom set ediddvflag on",
-            "#vrroom set ediddvmode 1",
-            "#vrroom set edidhdrflag on",
-            "#vrroom set edidhdrmode 1"
-        ])
 
         display_name = self.display.get("name", "your display") if self.display else "your display"
         recs.append({
@@ -875,13 +865,12 @@ class SetupRecommendationEngine:
                                "Content will fall back to HDR10."
             })
 
-        return {"recommendations": recs, "vrroom_settings": settings, "rs232_commands": cmds, "source_settings": []}
+        return {"recommendations": recs, "vrroom_settings": settings, "source_settings": []}
 
     def _goal_best_audio(self):
         """Recommendations for best audio quality."""
         recs = []
         settings = {}
-        cmds = []
         src = []
 
         has_atmos = self.speakers and self.speakers.get("atmos_capable")
@@ -921,7 +910,6 @@ class SetupRecommendationEngine:
             })
 
         # Unmute delay for audio
-        unmute = 150
         if has_earc_avr:
             settings["earcunmute"] = 200
             recs.append({
@@ -931,13 +919,12 @@ class SetupRecommendationEngine:
                                "Reduce to 100ms if no pops occur, increase to 300ms if they persist."
             })
 
-        return {"recommendations": recs, "vrroom_settings": settings, "rs232_commands": cmds, "source_settings": src}
+        return {"recommendations": recs, "vrroom_settings": settings, "source_settings": src}
 
     def _goal_gaming_low_latency(self):
         """Recommendations for gaming / low latency."""
         recs = []
         settings = {}
-        cmds = []
         src = []
 
         if self.hdfury and self.hdfury.get("vrr_support"):
@@ -963,7 +950,6 @@ class SetupRecommendationEngine:
             })
 
         settings["hdrcustom"] = "off"
-        cmds.append("#vrroom set hdrcustom off")
         recs.append({
             "severity": "warning",
             "title": "Disable Custom HDR Injection for Gaming",
@@ -986,13 +972,12 @@ class SetupRecommendationEngine:
             "description": "Set unmute delay to 100ms or lower to minimize audio latency during gaming."
         })
 
-        return {"recommendations": recs, "vrroom_settings": settings, "rs232_commands": cmds, "source_settings": src}
+        return {"recommendations": recs, "vrroom_settings": settings, "source_settings": src}
 
     def _goal_fix_preroll(self):
         """Recommendations for fixing pre-roll visibility issues."""
         recs = []
         settings = {}
-        cmds = []
         src = []
 
         recs.append({
@@ -1017,7 +1002,6 @@ class SetupRecommendationEngine:
         })
 
         settings["edidmode"] = "automix"
-        cmds.append("#vrroom set edidmode automix")
 
         if self.media_server:
             server_name = self.media_server.get("name", "Media server")
@@ -1035,25 +1019,17 @@ class SetupRecommendationEngine:
                                "the issue is HDMI handshake related and not client-specific."
             })
 
-        return {"recommendations": recs, "vrroom_settings": settings, "rs232_commands": cmds, "source_settings": src}
+        return {"recommendations": recs, "vrroom_settings": settings, "source_settings": src}
 
     def _goal_hdr_passthrough(self):
         """Recommendations for 4K HDR passthrough."""
         recs = []
         settings = {}
-        cmds = []
 
         settings["edidhdrflag"] = "on"
         settings["edidhdrmode"] = 1  # HDR10/HLG
         settings["edidmode"] = "automix"
         settings["hdcpmode"] = "auto"
-
-        cmds.extend([
-            "#vrroom set edidhdrflag on",
-            "#vrroom set edidhdrmode 1",
-            "#vrroom set edidmode automix",
-            "#vrroom set hdcpmode auto"
-        ])
 
         recs.append({
             "severity": "critical",
@@ -1073,7 +1049,6 @@ class SetupRecommendationEngine:
                 })
                 if "HDR10+" in hdr_list:
                     settings["edidhdrmode"] = 2  # HDR10+
-                    cmds.append("#vrroom set edidhdrmode 2")
 
         recs.append({
             "severity": "info",
@@ -1082,13 +1057,12 @@ class SetupRecommendationEngine:
                            "Manual HDCP settings can cause 4K HDR content to fail."
         })
 
-        return {"recommendations": recs, "vrroom_settings": settings, "rs232_commands": cmds, "source_settings": []}
+        return {"recommendations": recs, "vrroom_settings": settings, "source_settings": []}
 
     def _goal_minimize_format_switch(self):
         """Recommendations for minimizing format switching."""
         recs = []
         settings = {}
-        cmds = []
         src = []
 
         recs.append({
@@ -1122,7 +1096,6 @@ class SetupRecommendationEngine:
                 })
 
         settings["edidmode"] = "automix"
-        cmds.append("#vrroom set edidmode automix")
 
         recs.append({
             "severity": "info",
@@ -1131,7 +1104,7 @@ class SetupRecommendationEngine:
                            "re-reading EDID and triggering unnecessary handshakes."
         })
 
-        return {"recommendations": recs, "vrroom_settings": settings, "rs232_commands": cmds, "source_settings": src}
+        return {"recommendations": recs, "vrroom_settings": settings, "source_settings": src}
 
 
 # =============================================================================

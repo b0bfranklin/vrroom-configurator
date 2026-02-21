@@ -695,31 +695,6 @@
             font-size: 0.95em;
         }
 
-        .rs232-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .rs232-list li {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px 16px;
-            margin-bottom: 8px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.9em;
-            color: var(--accent-green);
-        }
-
-        .rs232-list li .copy-btn {
-            margin-top: 0;
-            margin-left: 12px;
-            flex-shrink: 0;
-        }
-
         /* ============================================================= */
         /* Footer                                                        */
         /* ============================================================= */
@@ -878,7 +853,7 @@
                 <div class="card" id="setup-vrroom-settings-card" style="display: none;">
                     <h2>Vrroom Settings</h2>
                     <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                        Apply these settings via the Vrroom web interface or RS232/IP commands below.
+                        Apply these settings via the Vrroom web interface.
                     </p>
                     <table class="settings-table" id="setup-vrroom-settings-table">
                         <thead>
@@ -889,15 +864,6 @@
                         </thead>
                         <tbody></tbody>
                     </table>
-                </div>
-
-                <!-- RS232 Commands -->
-                <div class="card" id="setup-rs232-card" style="display: none;">
-                    <h2>RS232 / IP Commands</h2>
-                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                        Copy and paste these commands into your Vrroom RS232/IP terminal.
-                    </p>
-                    <ul class="rs232-list" id="setup-rs232-list"></ul>
                 </div>
 
                 <!-- Source Device Settings -->
@@ -1732,22 +1698,6 @@
                 settingsCard.style.display = 'none';
             }
 
-            // RS232 Commands
-            const rs232Card = document.getElementById('setup-rs232-card');
-            const rs232List = document.getElementById('setup-rs232-list');
-            const commands = data.rs232_commands || [];
-            if (commands.length > 0) {
-                rs232Card.style.display = 'block';
-                rs232List.innerHTML = commands.map(cmd => `
-                    <li>
-                        <span class="rs232-cmd-text">${cmd}</span>
-                        <button class="btn btn-secondary copy-btn" onclick="copyRs232Command(this)">Copy</button>
-                    </li>
-                `).join('');
-            } else {
-                rs232Card.style.display = 'none';
-            }
-
             // Source Device Settings
             const srcCard = document.getElementById('setup-source-settings-card');
             const srcBody = document.querySelector('#setup-source-settings-table tbody');
@@ -1765,14 +1715,6 @@
             } else {
                 srcCard.style.display = 'none';
             }
-        }
-
-        function copyRs232Command(btn) {
-            const text = btn.previousElementSibling.textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                btn.textContent = 'Copied!';
-                setTimeout(() => btn.textContent = 'Copy', 2000);
-            });
         }
 
         // =================================================================
