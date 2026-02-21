@@ -7,6 +7,7 @@ Optimizes configs for minimal HDMI handshake delays (bonk) and LLDV support
 import copy
 import json
 import os
+import platform
 import socket
 import subprocess
 import shutil
@@ -18,10 +19,75 @@ app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 app.config['EXPORT_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'exports')
+app.config['BACKUP_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
 
 # Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
+os.makedirs(app.config['BACKUP_FOLDER'], exist_ok=True)
+
+
+# =============================================================================
+# FFmpeg Path Finder (handles Windows winget installs)
+# =============================================================================
+
+def find_ffmpeg_tool(tool_name):
+    """
+    Find ffmpeg/ffprobe executable, checking common install locations.
+    Returns the full path or None if not found.
+    """
+    # First try PATH
+    path = shutil.which(tool_name)
+    if path:
+        return path
+
+    # Windows-specific paths (winget, chocolatey, manual installs)
+    if platform.system() == "Windows":
+        windows_paths = [
+            os.path.expandvars(rf"%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-*\bin\{tool_name}.exe"),
+            os.path.expandvars(rf"%LOCALAPPDATA%\Microsoft\WinGet\Links\{tool_name}.exe"),
+            rf"C:\ffmpeg\bin\{tool_name}.exe",
+            rf"C:\Program Files\ffmpeg\bin\{tool_name}.exe",
+            rf"C:\ProgramData\chocolatey\bin\{tool_name}.exe",
+        ]
+        import glob
+        for pattern in windows_paths:
+            matches = glob.glob(pattern)
+            if matches:
+                return matches[0]
+
+    # macOS paths (homebrew)
+    elif platform.system() == "Darwin":
+        mac_paths = [
+            f"/opt/homebrew/bin/{tool_name}",
+            f"/usr/local/bin/{tool_name}",
+        ]
+        for p in mac_paths:
+            if os.path.exists(p):
+                return p
+
+    # Linux paths
+    else:
+        linux_paths = [
+            f"/usr/bin/{tool_name}",
+            f"/usr/local/bin/{tool_name}",
+            f"/snap/bin/{tool_name}",
+        ]
+        for p in linux_paths:
+            if os.path.exists(p):
+                return p
+
+    return None
+
+
+def get_ffprobe_path():
+    """Get path to ffprobe executable."""
+    return find_ffmpeg_tool("ffprobe")
+
+
+def get_ffmpeg_path():
+    """Get path to ffmpeg executable."""
+    return find_ffmpeg_tool("ffmpeg")
 
 
 # =============================================================================
@@ -158,6 +224,91 @@ class VrroomConnection:
                 "error": str(e),
                 "ip_address": self.ip_address
             }
+        finally:
+            self.disconnect()
+
+    def set_setting(self, setting, value):
+        """Set a single setting on the Vrroom."""
+        response = self.send_command(f"set {setting} {value}")
+        return response
+
+    def apply_settings(self, settings_dict):
+        """Apply multiple settings to the Vrroom. Returns results for each setting."""
+        results = {}
+        try:
+            self.connect()
+            for setting, value in settings_dict.items():
+                try:
+                    response = self.set_setting(setting, value)
+                    results[setting] = {"success": True, "response": response}
+                except Exception as e:
+                    results[setting] = {"success": False, "error": str(e)}
+            return {"success": True, "results": results}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+        finally:
+            self.disconnect()
+
+    def backup_config(self, backup_path=None):
+        """Backup all Vrroom settings to a JSON file."""
+        try:
+            self.connect()
+            settings = self.get_all_settings()
+            status = self.get_status()
+
+            backup_data = {
+                "vrroom_backup": True,
+                "version": "1.0",
+                "ip_address": self.ip_address,
+                "timestamp": datetime.now().isoformat(),
+                "settings": settings,
+                "status_snapshot": status
+            }
+
+            if backup_path:
+                with open(backup_path, "w") as f:
+                    json.dump(backup_data, f, indent=2)
+
+            return {"success": True, "backup": backup_data, "filepath": backup_path}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+        finally:
+            self.disconnect()
+
+    def detect_inputs(self):
+        """Detect connected devices on Vrroom inputs by parsing status."""
+        try:
+            self.connect()
+            detected = {
+                "rx0": {"connected": False, "signal": None, "resolution": None},
+                "rx1": {"connected": False, "signal": None, "resolution": None},
+            }
+
+            # Query input status
+            for rx in ["rx0", "rx1"]:
+                try:
+                    response = self.send_command(f"get status {rx}")
+                    if response and "no signal" not in response.lower():
+                        detected[rx]["connected"] = True
+                        detected[rx]["signal"] = response
+                        # Try to parse resolution from response
+                        # Typical format: "3840x2160p60 422 12b HDR BT2020 ..."
+                        parts = response.split()
+                        if parts:
+                            detected[rx]["resolution"] = parts[0]
+                except Exception:
+                    pass
+
+            # Also get input selection
+            try:
+                insel = self.send_command("get insel")
+                detected["active_input"] = insel
+            except Exception:
+                detected["active_input"] = None
+
+            return {"success": True, "inputs": detected}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
         finally:
             self.disconnect()
 
@@ -916,28 +1067,83 @@ DEVICE_PROFILES = {
             "type": "media_server",
             "preroll_support": True,
             "preroll_format_match": False,
-            "notes": "Set pre-roll in Settings > Extras. No automatic format matching."
+            "preroll_paths": {
+                "windows": r"C:\Users\<username>\AppData\Local\Plex Media Server\Extras\preroll.mp4",
+                "linux": "/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/preroll.mp4",
+                "macos": "~/Library/Application Support/Plex Media Server/preroll.mp4",
+                "docker": "/config/Library/Application Support/Plex Media Server/preroll.mp4"
+            },
+            "preroll_config_path": "Settings > Extras > Cinema Trailers Pre-roll Video",
+            "preroll_config_notes": "Enter the full path to your pre-roll video. Multiple pre-rolls can be separated with semicolons (random) or commas (sequential).",
+            "optimization_settings": {
+                "direct_play": {"path": "Settings > Server > Network > Direct Play", "recommended": "Enabled", "reason": "Avoids transcoding which can change format"},
+                "direct_stream": {"path": "Settings > Server > Network > Direct Stream", "recommended": "Enabled", "reason": "Allows remuxing without transcoding video"},
+                "transcoder_quality": {"path": "Settings > Server > Transcoder > Transcoder Quality", "recommended": "Maximum", "reason": "If transcoding is needed, use highest quality"},
+                "video_quality": {"path": "Settings > Quality (client) > Video Quality", "recommended": "Maximum / Original", "reason": "Ensures client requests original quality"}
+            },
+            "notes": "Set pre-roll in Settings > Extras. No automatic format matching. Use full file path."
         },
         "jellyfin": {
             "name": "Jellyfin",
             "type": "media_server",
             "preroll_support": True,
             "preroll_format_match": False,
-            "notes": "Pre-roll via Intros plugin. Free and open source."
+            "preroll_paths": {
+                "windows": r"C:\ProgramData\Jellyfin\Server\data\intros\preroll.mp4",
+                "linux": "/var/lib/jellyfin/data/intros/preroll.mp4",
+                "macos": "~/.local/share/jellyfin/data/intros/preroll.mp4",
+                "docker": "/config/data/intros/preroll.mp4"
+            },
+            "preroll_config_path": "Dashboard > Plugins > Intros > Configure",
+            "preroll_config_notes": "Install the Intros plugin from the plugin catalog. Point it to a folder containing your pre-roll videos.",
+            "optimization_settings": {
+                "playback_transcoding": {"path": "Dashboard > Playback > Transcoding", "recommended": "Hardware acceleration enabled if available", "reason": "Reduces CPU load, maintains quality"},
+                "direct_play": {"path": "Client Settings > Playback > Direct Play", "recommended": "Enabled / Forced", "reason": "Prevents unnecessary transcoding"},
+                "max_streaming_bitrate": {"path": "Client Settings > Playback > Maximum Streaming Bitrate", "recommended": "Auto or Maximum", "reason": "Allows full quality streaming"}
+            },
+            "notes": "Pre-roll via Intros plugin. Free and open source. Create an 'intros' folder and configure the plugin."
         },
         "emby": {
             "name": "Emby",
             "type": "media_server",
             "preroll_support": True,
             "preroll_format_match": False,
-            "notes": "Cinema intros feature. Known issue: may only show 1 frame if format mismatch."
+            "preroll_paths": {
+                "windows": r"C:\ProgramData\Emby-Server\programdata\intros\preroll.mp4",
+                "linux": "/var/lib/emby/intros/preroll.mp4",
+                "macos": "~/.emby-server/intros/preroll.mp4",
+                "docker": "/config/intros/preroll.mp4"
+            },
+            "preroll_config_path": "Settings > Advanced > Cinema Mode Intros",
+            "preroll_config_notes": "Enable Cinema Mode and set the intro folder path. Videos in this folder play before movies.",
+            "optimization_settings": {
+                "cinema_mode": {"path": "Settings > Advanced > Cinema Mode", "recommended": "Enabled", "reason": "Required for pre-roll functionality"},
+                "direct_play": {"path": "Settings > Playback > Direct Play", "recommended": "Enabled", "reason": "Prevents format changes that cause bonk"},
+                "direct_stream": {"path": "Settings > Playback > Direct Stream", "recommended": "Enabled", "reason": "Allows container changes without re-encoding"},
+                "transcoding_bitrate": {"path": "Settings > Playback > Transcoding Bitrate", "recommended": "Maximum / Original", "reason": "If transcoding needed, maintain quality"}
+            },
+            "notes": "Cinema intros feature. IMPORTANT: Pre-roll format MUST match movie format to avoid 1-frame display bug."
         },
         "kodi": {
             "name": "Kodi",
             "type": "media_server",
             "preroll_support": True,
             "preroll_format_match": False,
-            "notes": "CinemaVision addon for pre-roll. Local playback only."
+            "preroll_paths": {
+                "windows": "C:\\Users\\<username>\\AppData\\Roaming\\Kodi\\userdata\\addon_data\\script.cinemavision\\",
+                "linux": "~/.kodi/userdata/addon_data/script.cinemavision/",
+                "macos": "~/Library/Application Support/Kodi/userdata/addon_data/script.cinemavision/",
+                "libreelec": "/storage/.kodi/userdata/addon_data/script.cinemavision/"
+            },
+            "preroll_config_path": "Add-ons > CinemaVision > Settings > Sequences",
+            "preroll_config_notes": "Install CinemaVision addon. Create a sequence with your pre-roll video as a 'Trivia' or 'Trailer' element.",
+            "optimization_settings": {
+                "adjust_refresh": {"path": "Settings > Player > Videos > Adjust display refresh rate", "recommended": "On start/stop", "reason": "Matches display to content frame rate"},
+                "sync_playback": {"path": "Settings > Player > Videos > Sync playback to display", "recommended": "Enabled", "reason": "Reduces judder"},
+                "passthrough": {"path": "Settings > System > Audio > Allow Passthrough", "recommended": "Enabled for Atmos/DTS:X", "reason": "Passes lossless audio to AVR"},
+                "gui_resolution": {"path": "Settings > System > Display > Resolution", "recommended": "Match content or 4K", "reason": "Reduces mode switches"}
+            },
+            "notes": "CinemaVision addon for pre-roll. Local playback. Best for HTPC setups with direct display connection."
         }
     }
 }
@@ -2216,35 +2422,79 @@ class VrroomConfigAnalyzer:
 class PrerollAnalyzer:
     """Analyzes video files for format compatibility with main library content."""
 
+    # Common library content formats
+    TARGET_FORMATS = {
+        "4k_hdr10_24": {
+            "name": "4K HDR10 23.976fps (Movies)",
+            "width": 3840, "height": 2160, "fps": 23.976,
+            "hdr": True, "color_transfer": "smpte2084",
+            "description": "Most common format for 4K HDR movies"
+        },
+        "4k_hdr10_60": {
+            "name": "4K HDR10 60fps (Gaming/UI)",
+            "width": 3840, "height": 2160, "fps": 60,
+            "hdr": True, "color_transfer": "smpte2084",
+            "description": "For gaming or menu/UI content"
+        },
+        "4k_sdr_24": {
+            "name": "4K SDR 23.976fps (Movies)",
+            "width": 3840, "height": 2160, "fps": 23.976,
+            "hdr": False, "color_transfer": "bt709",
+            "description": "For 4K SDR movie libraries"
+        },
+        "1080p_sdr_24": {
+            "name": "1080p SDR 23.976fps (Movies)",
+            "width": 1920, "height": 1080, "fps": 23.976,
+            "hdr": False, "color_transfer": "bt709",
+            "description": "For 1080p movie libraries"
+        },
+        "1080p_hdr10_24": {
+            "name": "1080p HDR10 23.976fps (Movies)",
+            "width": 1920, "height": 1080, "fps": 23.976,
+            "hdr": True, "color_transfer": "smpte2084",
+            "description": "Rare, but some content is mastered this way"
+        }
+    }
+
     def __init__(self, file_path):
         self.file_path = file_path
         self.metadata = None
+        self.ffprobe_path = get_ffprobe_path()
+        self.ffmpeg_path = get_ffmpeg_path()
 
-    def analyze(self):
+    def analyze(self, target_format=None):
         """Analyze video file using FFprobe."""
-        if not self._check_ffprobe():
+        if not self.ffprobe_path:
+            # Provide more helpful error with install instructions
+            install_hint = ""
+            if platform.system() == "Windows":
+                install_hint = " Run: winget install -e --id Gyan.FFmpeg then restart your terminal."
+            elif platform.system() == "Darwin":
+                install_hint = " Run: brew install ffmpeg"
+            else:
+                install_hint = " Run: sudo apt install ffmpeg (Debian/Ubuntu) or equivalent."
+
             return {
-                "error": "FFprobe not found. Install FFmpeg to analyze video files.",
-                "ffprobe_available": False
+                "error": f"FFprobe not found. Install FFmpeg to analyze video files.{install_hint}",
+                "ffprobe_available": False,
+                "ffprobe_path": None,
+                "install_hint": install_hint.strip()
             }
 
         try:
             self.metadata = self._get_metadata()
-            return self._analyze_metadata()
+            return self._analyze_metadata(target_format)
         except Exception as e:
             return {
                 "error": str(e),
-                "ffprobe_available": True
+                "ffprobe_available": True,
+                "ffprobe_path": self.ffprobe_path
             }
-
-    def _check_ffprobe(self):
-        """Check if FFprobe is available."""
-        return shutil.which("ffprobe") is not None
 
     def _get_metadata(self):
         """Extract metadata using FFprobe."""
         cmd = [
-            "ffprobe",
+            self.ffprobe_path,
             "-v", "quiet",
             "-print_format", "json",
             "-show_format",
@@ -2258,7 +2508,7 @@ class PrerollAnalyzer:
 
         return json.loads(result.stdout)
 
-    def _analyze_metadata(self):
+    def _analyze_metadata(self, target_format=None):
         """Analyze extracted metadata for compatibility issues."""
         video_stream = None
         audio_stream = None
@@ -2302,9 +2552,19 @@ class PrerollAnalyzer:
         recommendations = []
         ffmpeg_commands = []
 
+        # Get target format details if specified
+        target = self.TARGET_FORMATS.get(target_format) if target_format else None
+
         # Resolution analysis
         is_4k = width >= 3840 and height >= 2160
-        if not is_4k:
+        if target:
+            if width != target["width"] or height != target["height"]:
+                issues.append({
+                    "severity": "warning",
+                    "title": "Resolution Mismatch",
+                    "description": f"Pre-roll is {width}x{height} but target is {target['width']}x{target['height']}. This WILL cause HDMI bonk."
+                })
+        elif not is_4k:
             issues.append({
                 "severity": "warning",
                 "title": "Non-4K Resolution",
@@ -2312,7 +2572,20 @@ class PrerollAnalyzer:
             })
 
         # HDR analysis
-        if not is_hdr:
+        if target:
+            if target["hdr"] and not is_hdr:
+                issues.append({
+                    "severity": "critical",
+                    "title": "HDR Mismatch",
+                    "description": "Pre-roll is SDR but target library is HDR. This WILL cause HDMI bonk."
+                })
+            elif not target["hdr"] and is_hdr:
+                issues.append({
+                    "severity": "warning",
+                    "title": "HDR Mismatch",
+                    "description": "Pre-roll is HDR but target library is SDR. This may cause display mode switch."
+                })
+        elif not is_hdr:
             issues.append({
                 "severity": "info",
                 "title": "SDR Content",
@@ -2324,18 +2597,19 @@ class PrerollAnalyzer:
             })
 
         # Frame rate analysis
+        target_fps = target["fps"] if target else 23.976
+        if fps and abs(fps - target_fps) > 0.5:
+            issues.append({
+                "severity": "info",
+                "title": "Frame Rate Mismatch",
+                "description": f"Pre-roll is {fps:.3f}fps, target is {target_fps}fps. May trigger refresh rate change."
+            })
+
         if fps and fps not in [23.976, 24, 25, 29.97, 30, 50, 59.94, 60]:
             issues.append({
                 "severity": "info",
                 "title": "Non-Standard Frame Rate",
                 "description": f"Frame rate {fps:.3f} fps may cause compatibility issues."
-            })
-
-        if fps and fps < 24:
-            issues.append({
-                "severity": "warning",
-                "title": "Low Frame Rate",
-                "description": f"Frame rate {fps:.3f} fps is unusual for cinema content."
             })
 
         # Codec analysis
@@ -2346,18 +2620,34 @@ class PrerollAnalyzer:
                 "description": f"Codec '{codec}' may have limited hardware support."
             })
 
-        # Always provide both conversion commands
-        ffmpeg_commands.append({
-            "description": "Convert to 4K HDR10 (HEVC) - Recommended for movie pre-rolls",
-            "command": self._generate_ffmpeg_4k_hdr(self.file_path)
-        })
-        ffmpeg_commands.append({
-            "description": "Convert to 1080p SDR (HEVC) - For SDR-only setups",
-            "command": self._generate_ffmpeg_1080p_sdr(self.file_path)
-        })
+        # Check if already matches target
+        matches_target = False
+        if target:
+            res_match = width == target["width"] and height == target["height"]
+            hdr_match = is_hdr == target["hdr"]
+            fps_match = abs(fps - target["fps"]) < 0.5 if fps else False
+            matches_target = res_match and hdr_match and fps_match
+            if matches_target:
+                recommendations.append({
+                    "title": "Pre-roll Already Matches Target!",
+                    "description": f"Your pre-roll already matches {target['name']}. No re-encoding needed."
+                })
+
+        # Generate FFmpeg commands for all target formats
+        for fmt_key, fmt in self.TARGET_FORMATS.items():
+            is_recommended = (fmt_key == target_format) or (not target_format and fmt_key == "4k_hdr10_24")
+            ffmpeg_commands.append({
+                "format_id": fmt_key,
+                "description": fmt["name"] + (" (RECOMMENDED)" if is_recommended else ""),
+                "target_description": fmt["description"],
+                "command": self._generate_ffmpeg_command(self.file_path, fmt),
+                "recommended": is_recommended
+            })
 
         return {
             "ffprobe_available": True,
+            "ffprobe_path": self.ffprobe_path,
+            "ffmpeg_path": self.ffmpeg_path,
             "file_info": {
                 "width": width,
                 "height": height,
@@ -2376,36 +2666,57 @@ class PrerollAnalyzer:
                 "channels": audio_stream.get("channels") if audio_stream else None,
                 "sample_rate": audio_stream.get("sample_rate") if audio_stream else None
             } if audio_stream else None,
+            "target_format": target,
+            "matches_target": matches_target,
             "issues": issues,
             "recommendations": recommendations,
-            "ffmpeg_commands": ffmpeg_commands
+            "ffmpeg_commands": ffmpeg_commands,
+            "available_target_formats": self.TARGET_FORMATS
         }
 
+    def _generate_ffmpeg_command(self, input_file, target_format):
+        """Generate FFmpeg command for converting to target format."""
+        width = target_format["width"]
+        height = target_format["height"]
+        fps = target_format["fps"]
+        is_hdr = target_format["hdr"]
+
+        # Build output filename
+        suffix = f"_{width}x{height}_{'hdr10' if is_hdr else 'sdr'}_{fps}fps"
+        output = os.path.splitext(os.path.basename(input_file))[0] + suffix + ".mkv"
+
+        ffmpeg = self.ffmpeg_path or "ffmpeg"
+
+        if is_hdr:
+            # HDR10 encoding with proper metadata
+            return (
+                f'"{ffmpeg}" -i "{input_file}" '
+                f'-vf "scale={width}:{height}:flags=lanczos,fps={fps},format=yuv420p10le" '
+                f'-c:v libx265 -preset slow -crf 18 '
+                f'-x265-params "colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:'
+                f'max-cll=1000,400:master-display=G(13250,34500)B(7500,3000)R(34000,16000)'
+                f'WP(15635,16450)L(10000000,1)" '
+                f'-c:a copy '
+                f'"{output}"'
+            )
+        else:
+            # SDR encoding with BT.709 color space
+            return (
+                f'"{ffmpeg}" -i "{input_file}" '
+                f'-vf "scale={width}:{height}:flags=lanczos,fps={fps}" '
+                f'-c:v libx265 -preset slow -crf 20 '
+                f'-colorspace bt709 -color_trc bt709 -color_primaries bt709 '
+                f'-c:a copy '
+                f'"{output}"'
+            )
+
     def _generate_ffmpeg_4k_hdr(self, input_file):
-        """Generate FFmpeg command for 4K HDR10 conversion."""
-        output = os.path.splitext(os.path.basename(input_file))[0] + "_4k_hdr10.mkv"
-        return (
-            f'ffmpeg -i "{input_file}" '
-            f'-vf "scale=3840:2160:flags=lanczos,format=yuv420p10le" '
-            f'-c:v libx265 -preset slow -crf 18 '
-            f'-x265-params "colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:'
-            f'max-cll=1000,400:master-display=G(13250,34500)B(7500,3000)R(34000,16000)'
-            f'WP(15635,16450)L(10000000,1)" '
-            f'-c:a copy '
-            f'"{output}"'
-        )
+        """Generate FFmpeg command for 4K HDR10 conversion (legacy)."""
+        return self._generate_ffmpeg_command(input_file, self.TARGET_FORMATS["4k_hdr10_24"])
 
     def _generate_ffmpeg_1080p_sdr(self, input_file):
-        """Generate FFmpeg command for 1080p SDR conversion."""
-        output = os.path.splitext(os.path.basename(input_file))[0] + "_1080p_sdr.mkv"
-        return (
-            f'ffmpeg -i "{input_file}" '
-            f'-vf "scale=1920:1080:flags=lanczos" '
-            f'-c:v libx265 -preset slow -crf 20 '
-            f'-colorspace bt709 -color_trc bt709 -color_primaries bt709 '
-            f'-c:a copy '
-            f'"{output}"'
-        )
+        """Generate FFmpeg command for 1080p SDR conversion (legacy)."""
+        return self._generate_ffmpeg_command(input_file, self.TARGET_FORMATS["1080p_sdr_24"])
 
 
 # =============================================================================
@@ -2554,13 +2865,16 @@ def analyze_preroll():
     if file.filename == "":
         return jsonify({"error": "No file selected"}), 400
 
+    # Get optional target format (e.g., "4k_hdr10_24")
+    target_format = request.form.get("target_format")
+
     filename = f"preroll_{uuid.uuid4().hex[:8]}_{file.filename}"
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
 
     try:
         analyzer = PrerollAnalyzer(filepath)
-        results = analyzer.analyze()
+        results = analyzer.analyze(target_format=target_format)
         return jsonify(results)
     finally:
         if os.path.exists(filepath):
@@ -2612,14 +2926,224 @@ def setup_recommend():
     return jsonify(results)
 
 
+@app.route("/api/vrroom/backup", methods=["POST"])
+def vrroom_backup():
+    """Backup Vrroom settings to a JSON file."""
+    data = request.get_json()
+    if not data or "ip_address" not in data:
+        return jsonify({"error": "IP address required"}), 400
+
+    ip = data["ip_address"]
+    port = data.get("port", 2222)
+
+    # Create backup filename
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"vrroom_backup_{timestamp}.json"
+    filepath = os.path.join(app.config['BACKUP_FOLDER'], filename)
+
+    vrroom = VrroomConnection(ip, port)
+    result = vrroom.backup_config(filepath)
+
+    if result.get("success"):
+        return jsonify({
+            "success": True,
+            "filename": filename,
+            "download_url": f"/api/download/backup/{filename}",
+            "backup": result["backup"]
+        })
+    else:
+        return jsonify(result), 500
+
+
+@app.route("/api/vrroom/apply", methods=["POST"])
+def vrroom_apply_settings():
+    """Apply settings to Vrroom via IP connection."""
+    data = request.get_json()
+    if not data or "ip_address" not in data:
+        return jsonify({"error": "IP address required"}), 400
+
+    ip = data["ip_address"]
+    port = data.get("port", 2222)
+    settings = data.get("settings", {})
+
+    if not settings:
+        return jsonify({"error": "No settings provided"}), 400
+
+    vrroom = VrroomConnection(ip, port)
+    result = vrroom.apply_settings(settings)
+    return jsonify(result)
+
+
+@app.route("/api/vrroom/detect", methods=["POST"])
+def vrroom_detect_inputs():
+    """Detect connected devices on Vrroom inputs."""
+    data = request.get_json()
+    if not data or "ip_address" not in data:
+        return jsonify({"error": "IP address required"}), 400
+
+    ip = data["ip_address"]
+    port = data.get("port", 2222)
+
+    vrroom = VrroomConnection(ip, port)
+    result = vrroom.detect_inputs()
+    return jsonify(result)
+
+
+@app.route("/api/download/backup/<filename>")
+def download_backup(filename):
+    """Download a backup file."""
+    filename = os.path.basename(filename)
+    filepath = os.path.join(app.config['BACKUP_FOLDER'], filename)
+
+    if not os.path.exists(filepath):
+        return jsonify({"error": "File not found"}), 404
+
+    return send_file(filepath, as_attachment=True, download_name=filename)
+
+
+@app.route("/api/preroll/encode", methods=["POST"])
+def encode_preroll():
+    """Re-encode pre-roll to target format (runs FFmpeg on server)."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files["file"]
+    target_format = request.form.get("target_format", "4k_hdr10_24")
+
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    ffmpeg_path = get_ffmpeg_path()
+    if not ffmpeg_path:
+        return jsonify({
+            "error": "FFmpeg not found on server. Cannot re-encode.",
+            "ffmpeg_available": False
+        }), 500
+
+    # Save uploaded file
+    input_filename = f"preroll_input_{uuid.uuid4().hex[:8]}_{file.filename}"
+    input_path = os.path.join(app.config['UPLOAD_FOLDER'], input_filename)
+    file.save(input_path)
+
+    # Get target format
+    target = PrerollAnalyzer.TARGET_FORMATS.get(target_format)
+    if not target:
+        os.remove(input_path)
+        return jsonify({"error": f"Unknown target format: {target_format}"}), 400
+
+    # Build output path
+    suffix = f"_{target['width']}x{target['height']}_{'hdr10' if target['hdr'] else 'sdr'}"
+    output_filename = os.path.splitext(file.filename)[0] + suffix + ".mkv"
+    output_path = os.path.join(app.config['EXPORT_FOLDER'], output_filename)
+
+    try:
+        # Build FFmpeg command
+        analyzer = PrerollAnalyzer(input_path)
+        cmd = analyzer._generate_ffmpeg_command(input_path, target)
+
+        # Replace output filename in command
+        cmd = cmd.rsplit('"', 2)[0] + f'"{output_path}"'
+
+        # Run FFmpeg (this can take a while)
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=600  # 10 minute timeout
+        )
+
+        if result.returncode != 0:
+            return jsonify({
+                "error": f"FFmpeg encoding failed: {result.stderr}",
+                "command": cmd
+            }), 500
+
+        return jsonify({
+            "success": True,
+            "output_filename": output_filename,
+            "download_url": f"/api/download/{output_filename}",
+            "target_format": target
+        })
+
+    except subprocess.TimeoutExpired:
+        return jsonify({"error": "Encoding timed out (10 minute limit)"}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        # Clean up input file
+        if os.path.exists(input_path):
+            os.remove(input_path)
+
+
+@app.route("/api/preroll/targets")
+def get_preroll_targets():
+    """Get available pre-roll target formats."""
+    return jsonify(PrerollAnalyzer.TARGET_FORMATS)
+
+
+@app.route("/api/media-server/<server_id>/preroll-paths")
+def get_preroll_paths(server_id):
+    """Get pre-roll paths for a specific media server."""
+    server = DEVICE_PROFILES["media_servers"].get(server_id)
+    if not server:
+        return jsonify({"error": f"Unknown media server: {server_id}"}), 404
+
+    return jsonify({
+        "server": server_id,
+        "name": server["name"],
+        "paths": server.get("preroll_paths", {}),
+        "config_path": server.get("preroll_config_path", ""),
+        "config_notes": server.get("preroll_config_notes", "")
+    })
+
+
+@app.route("/api/media-server/<server_id>/optimizations")
+def get_server_optimizations(server_id):
+    """Get optimization recommendations for a media server."""
+    server = DEVICE_PROFILES["media_servers"].get(server_id)
+    if not server:
+        return jsonify({"error": f"Unknown media server: {server_id}"}), 404
+
+    return jsonify({
+        "server": server_id,
+        "name": server["name"],
+        "optimization_settings": server.get("optimization_settings", {}),
+        "preroll_paths": server.get("preroll_paths", {}),
+        "preroll_config_path": server.get("preroll_config_path", ""),
+        "preroll_config_notes": server.get("preroll_config_notes", ""),
+        "notes": server.get("notes", "")
+    })
+
+
+@app.route("/api/media-servers/all-optimizations")
+def get_all_server_optimizations():
+    """Get optimization recommendations for all media servers."""
+    result = {}
+    for server_id, server in DEVICE_PROFILES["media_servers"].items():
+        result[server_id] = {
+            "name": server["name"],
+            "optimization_settings": server.get("optimization_settings", {}),
+            "preroll_paths": server.get("preroll_paths", {}),
+            "preroll_config_path": server.get("preroll_config_path", ""),
+            "preroll_config_notes": server.get("preroll_config_notes", "")
+        }
+    return jsonify(result)
+
+
 @app.route("/api/health")
 def health_check():
     """Health check endpoint."""
-    ffprobe_available = shutil.which("ffprobe") is not None
+    ffprobe_path = get_ffprobe_path()
+    ffmpeg_path = get_ffmpeg_path()
     return jsonify({
         "status": "healthy",
-        "ffprobe_available": ffprobe_available,
-        "version": "1.1.0"
+        "ffprobe_available": ffprobe_path is not None,
+        "ffprobe_path": ffprobe_path,
+        "ffmpeg_available": ffmpeg_path is not None,
+        "ffmpeg_path": ffmpeg_path,
+        "platform": platform.system(),
+        "version": "1.2.0"
     })
 
 

@@ -997,6 +997,27 @@
                 <div class="card" id="setup-download-area" style="display: none; text-align: center;">
                     <!-- Populated by JS -->
                 </div>
+
+                <!-- Apply to Vrroom -->
+                <div class="card" id="setup-apply-vrroom" style="display: none;">
+                    <h2>Apply Settings to Vrroom</h2>
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Send the recommended Vrroom settings directly to your device via IP.
+                    </p>
+                    <div class="setup-form" style="grid-template-columns: 1fr auto auto; gap: 12px; align-items: end;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="apply-vrroom-ip">Vrroom IP Address</label>
+                            <input type="text" id="apply-vrroom-ip" placeholder="192.168.1.100"
+                                   style="background: var(--bg-tertiary); color: var(--text-primary);
+                                          border: 1px solid var(--border-color); border-radius: 6px;
+                                          padding: 10px 12px; font-size: 1em;">
+                        </div>
+                        <button class="btn" id="apply-vrroom-btn" onclick="applySettingsToVrroom()">
+                            Apply Settings
+                        </button>
+                    </div>
+                    <div id="apply-vrroom-result" style="margin-top: 16px;"></div>
+                </div>
             </div>
         </div>
 
@@ -1025,8 +1046,15 @@
                     <button class="btn" id="connect-vrroom-btn" onclick="connectToVrroom()">
                         Connect
                     </button>
+                    <button class="btn" id="backup-vrroom-btn" onclick="backupVrroom()" style="display: none; margin-left: 8px;">
+                        Backup Settings
+                    </button>
+                    <button class="btn" id="detect-vrroom-btn" onclick="detectVrroomInputs()" style="display: none; margin-left: 8px;">
+                        Detect Inputs
+                    </button>
                 </div>
                 <div id="vrroom-connection-status" style="margin-top: 12px; display: none;"></div>
+                <div id="vrroom-detected-inputs" style="margin-top: 12px; display: none;"></div>
             </div>
 
             <div class="card" id="vrroom-live-config" style="display: none;">
@@ -1087,12 +1115,53 @@
                 <p style="color: var(--text-secondary); margin-bottom: 16px;">
                     Analyze your pre-roll video format to identify compatibility issues with your library content.
                 </p>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="preroll-target-format">Target Library Format (optional)</label>
+                    <select id="preroll-target-format" style="background: var(--bg-tertiary); color: var(--text-primary);
+                                      border: 1px solid var(--border-color); border-radius: 6px;
+                                      padding: 10px 12px; font-size: 1em; width: 100%;">
+                        <option value="">-- Auto-detect (compare to 4K HDR) --</option>
+                        <option value="4k_hdr10_24">4K HDR10 23.976fps (Movies)</option>
+                        <option value="4k_hdr10_60">4K HDR10 60fps (Gaming/UI)</option>
+                        <option value="4k_sdr_24">4K SDR 23.976fps (Movies)</option>
+                        <option value="1080p_sdr_24">1080p SDR 23.976fps (Movies)</option>
+                        <option value="1080p_hdr10_24">1080p HDR10 23.976fps</option>
+                    </select>
+                    <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 6px;">
+                        Select the format that matches most of your movie library. Pre-roll should match this to avoid bonk.
+                    </p>
+                </div>
+
                 <div class="dropzone" id="preroll-dropzone">
                     <div class="dropzone-icon">&#127916;</div>
                     <p>Drag & drop your pre-roll video here</p>
                     <p>or click to browse</p>
                     <span class="file-types">Accepts: .mp4, .mkv, .mov, .avi</span>
                     <input type="file" id="preroll-input" accept=".mp4,.mkv,.mov,.avi,.m4v,.ts">
+                </div>
+            </div>
+
+            <!-- Media Server Pre-roll Paths -->
+            <div class="card">
+                <h2>Pre-roll Upload Paths by Media Server</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Place your re-encoded pre-roll at these locations based on your media server and OS.
+                </p>
+                <div id="preroll-paths-info">
+                    <div class="form-group">
+                        <label for="preroll-server-select">Select your media server:</label>
+                        <select id="preroll-server-select" onchange="showPrerollPaths(this.value)" style="background: var(--bg-tertiary); color: var(--text-primary);
+                                      border: 1px solid var(--border-color); border-radius: 6px;
+                                      padding: 10px 12px; font-size: 1em; width: 100%;">
+                            <option value="">-- Select --</option>
+                            <option value="plex">Plex</option>
+                            <option value="emby">Emby</option>
+                            <option value="jellyfin">Jellyfin</option>
+                            <option value="kodi">Kodi</option>
+                        </select>
+                    </div>
+                    <div id="preroll-paths-display" style="margin-top: 16px;"></div>
                 </div>
             </div>
 
@@ -1104,6 +1173,7 @@
             <div class="results" id="preroll-results">
                 <div class="card">
                     <h2>Video Information</h2>
+                    <div id="ffmpeg-status" style="margin-bottom: 12px;"></div>
                     <div class="file-info" id="video-info"></div>
                 </div>
 
@@ -1336,6 +1406,9 @@
                     // Save IP for future use
                     localStorage.setItem('vrroom_ip', ip);
                     localStorage.setItem('vrroom_port', port);
+                    // Show backup and detect buttons
+                    document.getElementById('backup-vrroom-btn').style.display = 'inline-block';
+                    document.getElementById('detect-vrroom-btn').style.display = 'inline-block';
                 } else {
                     statusDiv.innerHTML = '<span style="color: var(--accent-red);">Connection failed: ' + (data.error || 'Unknown error') + '</span>';
                 }
@@ -1528,6 +1601,12 @@
             const formData = new FormData();
             formData.append('file', file);
 
+            // Add target format if selected
+            const targetFormat = document.getElementById('preroll-target-format');
+            if (targetFormat && targetFormat.value) {
+                formData.append('target_format', targetFormat.value);
+            }
+
             try {
                 const response = await fetch('/api/analyze/preroll', {
                     method: 'POST',
@@ -1589,6 +1668,35 @@
                 </div>
             `;
 
+            // Target format comparison
+            if (data.target_format) {
+                const target = data.target_format;
+                const matchStatus = data.matches_target
+                    ? '<span style="color: var(--accent-green);">✓ Matches Target</span>'
+                    : '<span style="color: var(--accent-yellow);">⚠ Does Not Match Target</span>';
+                videoInfo.innerHTML += `
+                    <div class="file-info-item" style="grid-column: 1 / -1; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                        <div class="file-info-label">Target Format</div>
+                        <div class="file-info-value">${target.name} ${matchStatus}</div>
+                    </div>
+                `;
+            }
+
+            // Recommendations
+            if (data.recommendations && data.recommendations.length > 0) {
+                const recsHtml = data.recommendations.map(rec => `
+                    <div style="margin: 8px 0; padding: 10px; background: var(--bg-tertiary); border-radius: 6px;">
+                        <strong>${rec.title}</strong>
+                        <p style="margin: 4px 0 0 0; color: var(--text-secondary);">${rec.description}</p>
+                    </div>
+                `).join('');
+                videoInfo.innerHTML += `
+                    <div style="grid-column: 1 / -1; margin-top: 12px;">
+                        ${recsHtml}
+                    </div>
+                `;
+            }
+
             // Issues
             const issuesCard = document.getElementById('preroll-issues-card');
             const issuesDiv = document.getElementById('preroll-issues');
@@ -1607,16 +1715,26 @@
                 issuesCard.style.display = 'none';
             }
 
-            // FFmpeg commands
+            // FFmpeg commands - show recommended first
             const commandsDiv = document.getElementById('ffmpeg-commands');
             if (data.ffmpeg_commands && data.ffmpeg_commands.length > 0) {
-                commandsDiv.innerHTML = data.ffmpeg_commands.map(cmd => `
-                    <div class="ffmpeg-command">
+                // Sort to show recommended first
+                const sortedCommands = [...data.ffmpeg_commands].sort((a, b) => {
+                    if (a.recommended && !b.recommended) return -1;
+                    if (!a.recommended && b.recommended) return 1;
+                    return 0;
+                });
+
+                commandsDiv.innerHTML = sortedCommands.map(cmd => `
+                    <div class="ffmpeg-command" style="${cmd.recommended ? 'border: 2px solid var(--accent-green);' : ''}">
                         <h4>${cmd.description}</h4>
+                        <p style="margin: 4px 0 8px 0; color: var(--text-secondary); font-size: 0.9em;">${cmd.target_description || ''}</p>
                         <code>${cmd.command}</code>
                         <button class="btn btn-secondary copy-btn" onclick="copyCommand(this)">Copy</button>
                     </div>
                 `).join('');
+            } else {
+                commandsDiv.innerHTML = '<p style="color: var(--text-secondary);">No FFmpeg commands available. Make sure FFmpeg is installed.</p>';
             }
         }
 
@@ -2019,6 +2137,10 @@
             const settingsBody = document.querySelector('#setup-vrroom-settings-table tbody');
             const vroomSettings = data.vrroom_settings || {};
             const settingKeys = Object.keys(vroomSettings);
+
+            // Store settings for apply function
+            window.lastVrroomSettings = vroomSettings;
+
             if (settingKeys.length > 0) {
                 settingsCard.style.display = 'block';
                 settingsBody.innerHTML = settingKeys.map(key => `
@@ -2027,8 +2149,24 @@
                         <td class="setting-value">${vroomSettings[key]}</td>
                     </tr>
                 `).join('');
+
+                // Show apply to Vrroom card
+                const applyCard = document.getElementById('setup-apply-vrroom');
+                if (applyCard) {
+                    applyCard.style.display = 'block';
+                    // Pre-fill IP if we have one stored
+                    const savedIp = localStorage.getItem('vrroom_ip');
+                    if (savedIp) {
+                        document.getElementById('apply-vrroom-ip').value = savedIp;
+                    }
+                }
             } else {
                 settingsCard.style.display = 'none';
+                // Hide apply card if no settings
+                const applyCard = document.getElementById('setup-apply-vrroom');
+                if (applyCard) {
+                    applyCard.style.display = 'none';
+                }
             }
 
             // Source Device Settings
@@ -2144,6 +2282,207 @@
                 `).join('');
             } catch (err) {
                 console.error('Error loading EDID presets:', err);
+            }
+        }
+
+        // =================================================================
+        // Vrroom Backup Function
+        // =================================================================
+        async function backupVrroom() {
+            const ip = localStorage.getItem('vrroom_ip');
+            const port = localStorage.getItem('vrroom_port') || '2222';
+            const statusDiv = document.getElementById('vrroom-connection-status');
+
+            if (!ip) {
+                alert('Please connect to Vrroom first.');
+                return;
+            }
+
+            statusDiv.innerHTML = '<span style="color: var(--accent-blue);">Backing up Vrroom settings...</span>';
+            statusDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/vrroom/backup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip_address: ip, port: parseInt(port) })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    statusDiv.innerHTML = `
+                        <span style="color: var(--accent-green);">Backup complete!</span>
+                        <a href="/api/download/backup/${data.backup_file}" class="btn" style="margin-left: 12px; display: inline-block; text-decoration: none;">
+                            Download Backup
+                        </a>
+                    `;
+                } else {
+                    statusDiv.innerHTML = '<span style="color: var(--accent-red);">Backup failed: ' + (data.error || 'Unknown error') + '</span>';
+                }
+            } catch (err) {
+                statusDiv.innerHTML = '<span style="color: var(--accent-red);">Backup error: ' + err.message + '</span>';
+            }
+        }
+
+        // =================================================================
+        // Vrroom Detect Inputs Function
+        // =================================================================
+        async function detectVrroomInputs() {
+            const ip = localStorage.getItem('vrroom_ip');
+            const port = localStorage.getItem('vrroom_port') || '2222';
+            const statusDiv = document.getElementById('vrroom-connection-status');
+
+            if (!ip) {
+                alert('Please connect to Vrroom first.');
+                return;
+            }
+
+            statusDiv.innerHTML = '<span style="color: var(--accent-blue);">Detecting connected devices...</span>';
+            statusDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/vrroom/detect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip_address: ip, port: parseInt(port) })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    let detectedHtml = '<span style="color: var(--accent-green);">Detected devices:</span><ul style="margin: 8px 0; padding-left: 20px;">';
+                    const inputs = data.inputs || {};
+
+                    if (inputs.rx0 && inputs.rx0.connected) {
+                        detectedHtml += `<li><strong>RX0 (Input 1):</strong> ${inputs.rx0.resolution || 'Unknown'} ${inputs.rx0.hdr || ''}</li>`;
+                    }
+                    if (inputs.rx1 && inputs.rx1.connected) {
+                        detectedHtml += `<li><strong>RX1 (Input 2):</strong> ${inputs.rx1.resolution || 'Unknown'} ${inputs.rx1.hdr || ''}</li>`;
+                    }
+
+                    if (!inputs.rx0?.connected && !inputs.rx1?.connected) {
+                        detectedHtml += '<li>No active inputs detected</li>';
+                    }
+
+                    detectedHtml += '</ul>';
+                    statusDiv.innerHTML = detectedHtml;
+                } else {
+                    statusDiv.innerHTML = '<span style="color: var(--accent-red);">Detection failed: ' + (data.error || 'Unknown error') + '</span>';
+                }
+            } catch (err) {
+                statusDiv.innerHTML = '<span style="color: var(--accent-red);">Detection error: ' + err.message + '</span>';
+            }
+        }
+
+        // =================================================================
+        // Apply Settings to Vrroom Function
+        // =================================================================
+        async function applySettingsToVrroom() {
+            const ipInput = document.getElementById('apply-vrroom-ip');
+            const ip = ipInput.value.trim() || localStorage.getItem('vrroom_ip');
+            const port = localStorage.getItem('vrroom_port') || '2222';
+
+            if (!ip) {
+                alert('Please enter a Vrroom IP address.');
+                return;
+            }
+
+            // Get the vrroom_settings from the last recommendation generation
+            if (!window.lastVrroomSettings || Object.keys(window.lastVrroomSettings).length === 0) {
+                alert('No settings to apply. Please generate recommendations first.');
+                return;
+            }
+
+            const applyCard = document.getElementById('setup-apply-vrroom');
+            const resultDiv = applyCard.querySelector('.apply-result') || document.createElement('div');
+            resultDiv.className = 'apply-result';
+            resultDiv.innerHTML = '<span style="color: var(--accent-blue);">Applying settings to Vrroom...</span>';
+            if (!applyCard.querySelector('.apply-result')) {
+                applyCard.appendChild(resultDiv);
+            }
+
+            try {
+                const response = await fetch('/api/vrroom/apply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ip_address: ip,
+                        port: parseInt(port),
+                        settings: window.lastVrroomSettings
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    const results = data.results || {};
+                    const successCount = Object.values(results).filter(r => r.success).length;
+                    const totalCount = Object.keys(results).length;
+
+                    let html = `<span style="color: var(--accent-green);">Applied ${successCount}/${totalCount} settings successfully!</span>`;
+                    html += '<ul style="margin: 8px 0; padding-left: 20px; font-size: 0.9em;">';
+                    for (const [setting, result] of Object.entries(results)) {
+                        if (result.success) {
+                            html += `<li style="color: var(--accent-green);">✓ ${setting}</li>`;
+                        } else {
+                            html += `<li style="color: var(--accent-red);">✗ ${setting}: ${result.error || 'Failed'}</li>`;
+                        }
+                    }
+                    html += '</ul>';
+                    html += '<p style="color: var(--accent-yellow); margin-top: 8px;"><strong>Important:</strong> Power cycle your Vrroom to apply changes!</p>';
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = '<span style="color: var(--accent-red);">Apply failed: ' + (data.error || 'Unknown error') + '</span>';
+                }
+            } catch (err) {
+                resultDiv.innerHTML = '<span style="color: var(--accent-red);">Apply error: ' + err.message + '</span>';
+            }
+        }
+
+        // =================================================================
+        // Show Pre-roll Paths for Media Server
+        // =================================================================
+        async function showPrerollPaths(serverId) {
+            const displayDiv = document.getElementById('preroll-paths-display');
+
+            if (!serverId) {
+                displayDiv.innerHTML = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/media-server/${serverId}/preroll-paths`);
+                const data = await response.json();
+
+                if (data.error) {
+                    displayDiv.innerHTML = `<span style="color: var(--accent-red);">${data.error}</span>`;
+                    return;
+                }
+
+                const paths = data.preroll_paths || {};
+                let html = '<div style="margin-top: 12px;">';
+                html += `<h4 style="margin-bottom: 8px;">${data.name} Pre-roll Paths</h4>`;
+                html += '<table class="settings-table" style="font-size: 0.9em;"><tbody>';
+
+                for (const [os, path] of Object.entries(paths)) {
+                    html += `
+                        <tr>
+                            <td style="width: 80px; text-transform: capitalize;"><strong>${os}</strong></td>
+                            <td style="font-family: monospace; word-break: break-all;">${path}</td>
+                        </tr>
+                    `;
+                }
+                html += '</tbody></table>';
+
+                if (data.config_path) {
+                    html += `<p style="margin-top: 10px; color: var(--text-secondary);"><strong>Config Location:</strong> ${data.config_path}</p>`;
+                }
+                if (data.config_notes) {
+                    html += `<p style="margin-top: 6px; color: var(--text-secondary); font-size: 0.9em;">${data.config_notes}</p>`;
+                }
+
+                html += '</div>';
+                displayDiv.innerHTML = html;
+            } catch (err) {
+                displayDiv.innerHTML = `<span style="color: var(--accent-red);">Error loading paths: ${err.message}</span>`;
             }
         }
 
