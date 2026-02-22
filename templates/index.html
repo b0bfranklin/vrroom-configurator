@@ -2279,36 +2279,71 @@
             const recsDiv = document.getElementById('setup-recommendations');
             if (data.recommendations && data.recommendations.length > 0) {
                 recsCard.style.display = 'block';
-                recsDiv.innerHTML = data.recommendations.map(rec => `
-                    <div class="issue ${rec.severity || 'info'}">
-                        <div class="issue-header">
-                            <span class="issue-badge">${rec.severity || 'info'}</span>
-                            <span class="issue-title">${rec.title}</span>
+                recsDiv.innerHTML = data.recommendations.map(rec => {
+                    // Determine which device section this recommendation relates to
+                    let deviceLink = '';
+                    const titleLower = (rec.title || '').toLowerCase();
+                    const descLower = (rec.description || '').toLowerCase();
+
+                    if (titleLower.includes('vrroom') || titleLower.includes('edid') || titleLower.includes('lldv') || titleLower.includes('hdmi')) {
+                        deviceLink = '<a href="#" onclick="scrollToSection(\'setup-vrroom-settings-card\'); return false;" style="color: var(--accent-blue);">→ See Vrroom Settings below</a>';
+                    } else if (titleLower.includes('avr') || titleLower.includes('receiver') || titleLower.includes('ypao') || titleLower.includes('audyssey') || titleLower.includes('speaker') || titleLower.includes('crossover')) {
+                        deviceLink = '<a href="#" onclick="scrollToSection(\'setup-avr-settings-card\'); return false;" style="color: var(--accent-blue);">→ See AVR Settings below</a>';
+                    } else if (titleLower.includes('projector') || titleLower.includes('tv') || titleLower.includes('display') || titleLower.includes('epson') || titleLower.includes('samsung') || titleLower.includes('lg') || titleLower.includes('sony')) {
+                        deviceLink = '<a href="#" onclick="scrollToSection(\'setup-display-settings-card\'); return false;" style="color: var(--accent-blue);">→ See Display Settings below</a>';
+                    } else if (descLower.includes('shield') || descLower.includes('apple tv') || descLower.includes('source') || descLower.includes('match frame rate')) {
+                        deviceLink = '<a href="#" onclick="scrollToSection(\'setup-source-settings-card\'); return false;" style="color: var(--accent-blue);">→ See Source Settings below</a>';
+                    }
+
+                    return `
+                        <div class="issue ${rec.severity || 'info'}">
+                            <div class="issue-header">
+                                <span class="issue-badge">${rec.severity || 'info'}</span>
+                                <span class="issue-title">${rec.title}</span>
+                            </div>
+                            <div class="issue-description">${rec.description}</div>
+                            ${deviceLink ? `<div style="margin-top: 8px; font-size: 0.9em;">${deviceLink}</div>` : ''}
                         </div>
-                        <div class="issue-description">${rec.description}</div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             } else {
                 recsCard.style.display = 'none';
             }
 
-            // Vrroom Settings table
+            // Vrroom Settings table - use detailed format
             const settingsCard = document.getElementById('setup-vrroom-settings-card');
             const settingsBody = document.querySelector('#setup-vrroom-settings-table tbody');
-            const vroomSettings = data.vrroom_settings || {};
-            const settingKeys = Object.keys(vroomSettings);
+            const vroomSettingsDetailed = data.vrroom_settings_detailed || [];
+            const vroomSettingsRaw = data.vrroom_settings || {};
 
-            // Store settings for apply function
-            window.lastVrroomSettings = vroomSettings;
+            // Store raw settings for apply function
+            window.lastVrroomSettings = vroomSettingsRaw;
 
-            if (settingKeys.length > 0) {
+            if (vroomSettingsDetailed.length > 0) {
                 settingsCard.style.display = 'block';
-                settingsBody.innerHTML = settingKeys.map(key => `
-                    <tr>
-                        <td><strong>${key}</strong></td>
-                        <td class="setting-value">${vroomSettings[key]}</td>
-                    </tr>
-                `).join('');
+                settingsBody.innerHTML = vroomSettingsDetailed.map(s => {
+                    const statusIcon = s.is_set
+                        ? '<span style="color: var(--accent-green); margin-right: 6px;">✓</span>'
+                        : '<span style="color: var(--accent-red); margin-right: 6px;">✗</span>';
+                    const valueColor = s.is_set ? 'var(--accent-green)' : 'var(--text-primary)';
+                    return `
+                        <tr>
+                            <td>
+                                ${statusIcon}
+                                <strong>${s.name}</strong>
+                                <div class="settings-path" style="margin-top: 4px;">
+                                    <span style="color: var(--accent-blue);">${s.tab}</span> tab → ${s.menu_path}
+                                </div>
+                            </td>
+                            <td class="setting-value" style="color: ${valueColor};">
+                                ${s.display_value}
+                            </td>
+                            <td style="color: var(--text-secondary); font-size: 0.9em;">
+                                ${s.description || ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
 
                 // Show apply to Vrroom card
                 const applyCard = document.getElementById('setup-apply-vrroom');
@@ -2337,13 +2372,25 @@
                 srcCard.style.display = 'block';
                 srcBody.innerHTML = srcSettings.map(s => {
                     const pathHtml = s.path
-                        ? `<div class="settings-path">${s.path}</div>`
+                        ? `<div class="settings-path" style="margin-top: 4px;">${s.path}</div>`
                         : '';
+                    // Status indicator
+                    const valueStr = String(s.value || '').toLowerCase();
+                    const isEnabled = valueStr.includes('enable') || valueStr.includes('on') ||
+                                     valueStr.includes('yes') || valueStr.includes('auto');
+                    const statusIcon = isEnabled
+                        ? '<span style="color: var(--accent-green); margin-right: 6px;">✓</span>'
+                        : '<span style="color: var(--accent-yellow); margin-right: 6px;">○</span>';
+
                     return `
                         <tr>
-                            <td><strong>${s.setting}</strong></td>
-                            <td class="setting-value">${s.value}${pathHtml}</td>
-                            <td>${s.device || ''}</td>
+                            <td>
+                                ${statusIcon}
+                                <strong>${s.setting}</strong>
+                                ${pathHtml}
+                            </td>
+                            <td class="setting-value" style="color: var(--accent-green);">${s.value}</td>
+                            <td style="color: var(--accent-purple);">${s.device || ''}</td>
                             <td style="color: var(--text-secondary); font-size: 0.9em;">${s.reason || ''}</td>
                         </tr>
                     `;
@@ -2359,13 +2406,49 @@
             if (avrSettings.length > 0) {
                 avrCard.style.display = 'block';
                 avrBody.innerHTML = avrSettings.map(s => {
-                    const pathHtml = s.path
-                        ? `<div class="settings-path">${s.path}</div>`
-                        : '';
+                    // Build path display with steps if available
+                    let pathHtml = '';
+                    if (s.path) {
+                        pathHtml = `<div class="settings-path" style="margin-top: 4px;">${s.path}</div>`;
+                    }
+                    if (s.tab) {
+                        pathHtml = `<div class="settings-path" style="margin-top: 4px;">
+                            <span style="color: var(--accent-blue);">${s.tab}</span>
+                        </div>` + pathHtml;
+                    }
+                    // Add expandable steps if available
+                    let stepsHtml = '';
+                    if (s.steps && s.steps.length > 0) {
+                        const stepsId = 'steps-' + Math.random().toString(36).substr(2, 9);
+                        stepsHtml = `
+                            <details style="margin-top: 8px;">
+                                <summary style="cursor: pointer; color: var(--accent-blue); font-size: 0.85em;">
+                                    Show step-by-step instructions
+                                </summary>
+                                <ol style="margin-top: 8px; padding-left: 20px; font-size: 0.85em; color: var(--text-secondary);">
+                                    ${s.steps.map(step => `<li style="margin-bottom: 4px;">${step}</li>`).join('')}
+                                </ol>
+                            </details>
+                        `;
+                    }
+                    // Status indicator - check if value looks "enabled"
+                    const valueStr = String(s.value || '').toLowerCase();
+                    const isEnabled = valueStr.includes('enable') || valueStr.includes('on') ||
+                                     valueStr.includes('yes') || valueStr.includes('auto') ||
+                                     !valueStr.includes('off') && !valueStr.includes('disable');
+                    const statusIcon = isEnabled
+                        ? '<span style="color: var(--accent-green); margin-right: 6px;">✓</span>'
+                        : '<span style="color: var(--accent-yellow); margin-right: 6px;">○</span>';
+
                     return `
                         <tr>
-                            <td><strong>${s.setting}</strong></td>
-                            <td class="setting-value">${s.value}${pathHtml}</td>
+                            <td>
+                                ${statusIcon}
+                                <strong>${s.setting}</strong>
+                                ${pathHtml}
+                                ${stepsHtml}
+                            </td>
+                            <td class="setting-value" style="color: var(--accent-green);">${s.value}</td>
                             <td style="color: var(--text-secondary); font-size: 0.9em;">${s.reason || ''}</td>
                         </tr>
                     `;
@@ -2381,13 +2464,47 @@
             if (dispSettings.length > 0) {
                 dispCard.style.display = 'block';
                 dispBody.innerHTML = dispSettings.map(s => {
-                    const pathHtml = s.path
-                        ? `<div class="settings-path">${s.path}</div>`
-                        : '';
+                    // Build path display with steps if available
+                    let pathHtml = '';
+                    if (s.path) {
+                        pathHtml = `<div class="settings-path" style="margin-top: 4px;">${s.path}</div>`;
+                    }
+                    if (s.tab) {
+                        pathHtml = `<div class="settings-path" style="margin-top: 4px;">
+                            <span style="color: var(--accent-blue);">${s.tab}</span>
+                        </div>` + pathHtml;
+                    }
+                    // Add expandable steps if available
+                    let stepsHtml = '';
+                    if (s.steps && s.steps.length > 0) {
+                        stepsHtml = `
+                            <details style="margin-top: 8px;">
+                                <summary style="cursor: pointer; color: var(--accent-blue); font-size: 0.85em;">
+                                    Show step-by-step instructions
+                                </summary>
+                                <ol style="margin-top: 8px; padding-left: 20px; font-size: 0.85em; color: var(--text-secondary);">
+                                    ${s.steps.map(step => `<li style="margin-bottom: 4px;">${step}</li>`).join('')}
+                                </ol>
+                            </details>
+                        `;
+                    }
+                    // Status indicator
+                    const valueStr = String(s.value || '').toLowerCase();
+                    const isEnabled = valueStr.includes('enable') || valueStr.includes('on') ||
+                                     valueStr.includes('yes') || !valueStr.includes('off');
+                    const statusIcon = isEnabled
+                        ? '<span style="color: var(--accent-green); margin-right: 6px;">✓</span>'
+                        : '<span style="color: var(--accent-yellow); margin-right: 6px;">○</span>';
+
                     return `
                         <tr>
-                            <td><strong>${s.setting}</strong></td>
-                            <td class="setting-value">${s.value}${pathHtml}</td>
+                            <td>
+                                ${statusIcon}
+                                <strong>${s.setting}</strong>
+                                ${pathHtml}
+                                ${stepsHtml}
+                            </td>
+                            <td class="setting-value" style="color: var(--accent-green);">${s.value}</td>
                             <td style="color: var(--text-secondary); font-size: 0.9em;">${s.reason || ''}</td>
                         </tr>
                     `;
@@ -2643,6 +2760,21 @@
                 displayDiv.innerHTML = html;
             } catch (err) {
                 displayDiv.innerHTML = `<span style="color: var(--accent-red);">Error loading paths: ${err.message}</span>`;
+            }
+        }
+
+        // =================================================================
+        // Scroll to Section Helper
+        // =================================================================
+        function scrollToSection(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Highlight the section briefly
+                element.style.boxShadow = '0 0 20px var(--accent-blue)';
+                setTimeout(() => {
+                    element.style.boxShadow = '';
+                }, 2000);
             }
         }
 

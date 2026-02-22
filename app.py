@@ -2389,6 +2389,158 @@ DEVICE_PROFILES = {
 
 
 # =============================================================================
+# VRROOM Settings Metadata (human-readable names and menu paths)
+# =============================================================================
+
+VRROOM_SETTINGS_META = {
+    "edidmode": {
+        "name": "EDID Mode",
+        "menu_path": "Vrroom Web UI > EDID > MODE",
+        "tab": "EDID",
+        "values": {
+            "automix": "AutoMix (Recommended)",
+            "custom": "Custom EDID",
+            "fixed": "Fixed",
+            "copytx0": "Copy TX0",
+            "copytx1": "Copy TX1"
+        },
+        "description": "How EDID is generated for connected sources"
+    },
+    "ediddvflag": {
+        "name": "Dolby Vision EDID Flag",
+        "menu_path": "Vrroom Web UI > EDID > DV FLAG",
+        "tab": "EDID",
+        "values": {"on": "Enabled", "off": "Disabled"},
+        "description": "Include Dolby Vision capability in EDID"
+    },
+    "ediddvmode": {
+        "name": "Dolby Vision Mode",
+        "menu_path": "Vrroom Web UI > EDID > DV MODE",
+        "tab": "EDID",
+        "values": {"0": "LG C1 (Standard)", "1": "Custom", "2": "Remove DV"},
+        "description": "Which DV profile to advertise"
+    },
+    "edidhdrflag": {
+        "name": "HDR EDID Flag",
+        "menu_path": "Vrroom Web UI > EDID > HDR FLAG",
+        "tab": "EDID",
+        "values": {"on": "Enabled", "off": "Disabled"},
+        "description": "Include HDR capability in EDID"
+    },
+    "edidhdrmode": {
+        "name": "HDR Mode",
+        "menu_path": "Vrroom Web UI > EDID > HDR MODE",
+        "tab": "EDID",
+        "values": {
+            "0": "HDR10 only",
+            "1": "HDR10 + HLG",
+            "2": "HDR10+",
+            "3": "HDR10+ + HLG",
+            "4": "Remove HDR"
+        },
+        "description": "Which HDR formats to advertise in EDID"
+    },
+    "hdrcustom": {
+        "name": "Custom HDR Injection",
+        "menu_path": "Vrroom Web UI > SIGNAL > HDR CUSTOM",
+        "tab": "SIGNAL",
+        "values": {"on": "Enabled", "off": "Disabled"},
+        "description": "Inject custom HDR metadata (auto-disables under VRR)"
+    },
+    "lldv": {
+        "name": "LLDV (Low Latency DV)",
+        "menu_path": "Vrroom Web UI > EDID > LLDV",
+        "tab": "EDID",
+        "values": {"on": "Enabled", "off": "Disabled"},
+        "description": "Enable LLDV conversion for non-DV displays"
+    },
+    "unmutedelay": {
+        "name": "Audio Unmute Delay",
+        "menu_path": "Vrroom Web UI > AUDIO > UNMUTE DELAY",
+        "tab": "AUDIO",
+        "values": "0-20 (x100ms, e.g., 5 = 500ms)",
+        "description": "Delay before unmuting audio after format change to prevent pops"
+    },
+    "vrr": {
+        "name": "VRR (Variable Refresh Rate)",
+        "menu_path": "Vrroom Web UI > SIGNAL > VRR",
+        "tab": "SIGNAL",
+        "values": {"on": "Enabled", "off": "Disabled", "force": "Force On"},
+        "description": "Variable Refresh Rate passthrough or injection"
+    },
+    "allm": {
+        "name": "ALLM (Auto Low Latency Mode)",
+        "menu_path": "Vrroom Web UI > SIGNAL > ALLM",
+        "tab": "SIGNAL",
+        "values": {"on": "Enabled", "off": "Disabled", "force": "Force On"},
+        "description": "Auto Low Latency Mode passthrough or injection"
+    },
+    "downscale": {
+        "name": "Downscale Output",
+        "menu_path": "Vrroom Web UI > SIGNAL > DOWNSCALE",
+        "tab": "SIGNAL",
+        "values": {"off": "Disabled (native)", "1080p": "1080p", "4k": "4K"},
+        "description": "Downscale output resolution"
+    },
+    "frl": {
+        "name": "Fixed Rate Link (HDMI 2.1)",
+        "menu_path": "Vrroom Web UI > SIGNAL > FRL MODE",
+        "tab": "SIGNAL",
+        "values": {"auto": "Auto", "off": "Disabled (TMDS only)"},
+        "description": "HDMI 2.1 FRL mode for high bandwidth"
+    },
+    "earc": {
+        "name": "eARC Mode",
+        "menu_path": "Vrroom Web UI > AUDIO > eARC",
+        "tab": "AUDIO",
+        "values": {"on": "Enabled", "off": "Disabled"},
+        "description": "Enhanced Audio Return Channel"
+    },
+    "audioout": {
+        "name": "Audio Output Mode",
+        "menu_path": "Vrroom Web UI > AUDIO > OUTPUT",
+        "tab": "AUDIO",
+        "values": {"off": "Disabled", "spdif": "S/PDIF", "analog": "Analog", "all": "All"},
+        "description": "Audio extraction output"
+    }
+}
+
+
+def get_vrroom_setting_display(setting_key, value):
+    """Convert RS232 setting to human-readable format."""
+    meta = VRROOM_SETTINGS_META.get(setting_key, {})
+    if not meta:
+        return {
+            "name": setting_key,
+            "value": str(value),
+            "display_value": str(value),
+            "menu_path": "Vrroom Web UI",
+            "tab": "Settings",
+            "is_set": True
+        }
+
+    # Get human-readable value
+    values_map = meta.get("values", {})
+    if isinstance(values_map, dict):
+        display_value = values_map.get(str(value), str(value))
+    else:
+        display_value = f"{value} ({values_map})"
+
+    # Determine if this is "enabled/on" state
+    is_enabled = str(value).lower() in ["on", "enabled", "1", "true", "yes", "automix"]
+
+    return {
+        "name": meta.get("name", setting_key),
+        "value": value,
+        "display_value": display_value,
+        "menu_path": meta.get("menu_path", "Vrroom Web UI"),
+        "tab": meta.get("tab", "Settings"),
+        "description": meta.get("description", ""),
+        "is_set": is_enabled
+    }
+
+
+# =============================================================================
 # EDID Presets Documentation
 # =============================================================================
 
@@ -2969,6 +3121,35 @@ class SetupRecommendationEngine:
             with open(filepath, "w") as f:
                 json.dump(config_data, f, indent=2)
 
+        # Convert vrroom_settings to detailed format with human-readable names
+        vrroom_settings_detailed = []
+        for key, value in vrroom_settings.items():
+            detailed = get_vrroom_setting_display(key, value)
+            vrroom_settings_detailed.append(detailed)
+
+        # Fix avr_settings paths - extract string from object if needed
+        for setting in avr_settings:
+            path = setting.get("path", "")
+            if isinstance(path, dict):
+                # Extract path string and add steps if available
+                setting["path"] = path.get("path", "")
+                setting["steps"] = path.get("steps", [])
+                setting["tab"] = path.get("tab", "")
+                setting["recommended"] = path.get("recommended", "")
+            elif not path:
+                setting["path"] = ""
+
+        # Fix display_settings paths too
+        for setting in display_settings:
+            path = setting.get("path", "")
+            if isinstance(path, dict):
+                setting["path"] = path.get("path", "")
+                setting["steps"] = path.get("steps", [])
+                setting["tab"] = path.get("tab", "")
+                setting["recommended"] = path.get("recommended", "")
+            elif not path:
+                setting["path"] = ""
+
         return {
             "setup_summary": {
                 "display": self.display.get("name", "Not specified"),
@@ -2981,7 +3162,8 @@ class SetupRecommendationEngine:
                 "goals": [OPTIMIZATION_GOALS[g]["name"] for g in self.goals if g in OPTIMIZATION_GOALS]
             },
             "recommendations": unique_recs,
-            "vrroom_settings": vrroom_settings,
+            "vrroom_settings": vrroom_settings,  # Raw settings for apply function
+            "vrroom_settings_detailed": vrroom_settings_detailed,  # Human-readable for display
             "source_settings": unique_src,
             "avr_settings": avr_settings,
             "display_settings": display_settings,
