@@ -430,6 +430,430 @@ class VrroomConnection:
         finally:
             self.disconnect()
 
+    def diagnose_hdr_signal_chain(self):
+        """
+        Diagnose HDR signal path through the Vrroom.
+        Returns detailed info about HDR/DV status at each point in the chain.
+        """
+        try:
+            self.connect()
+            diagnosis = {
+                "success": True,
+                "timestamp": datetime.now().isoformat(),
+                "signal_chain": [],
+                "hdr_status": {
+                    "input": {"detected": False, "format": "SDR", "details": None},
+                    "processing": {"lldv_active": False, "hdr_inject": False},
+                    "output": {"format": "SDR", "details": None}
+                },
+                "settings": {},
+                "issues": [],
+                "recommendations": []
+            }
+
+            # 1. Query input status (what's coming from sources)
+            for rx in ["rx0", "rx1"]:
+                try:
+                    response = self.send_command(f"get status {rx}")
+                    if response and "no signal" not in response.lower():
+                        signal_info = self._parse_signal_status(response, rx)
+                        diagnosis["signal_chain"].append({
+                            "stage": f"Input {rx.upper()}",
+                            "type": "input",
+                            "connected": True,
+                            **signal_info
+                        })
+                        # Check if this input has HDR
+                        if signal_info.get("hdr_format") != "SDR":
+                            diagnosis["hdr_status"]["input"]["detected"] = True
+                            diagnosis["hdr_status"]["input"]["format"] = signal_info.get("hdr_format", "SDR")
+                            diagnosis["hdr_status"]["input"]["details"] = signal_info
+                    else:
+                        diagnosis["signal_chain"].append({
+                            "stage": f"Input {rx.upper()}",
+                            "type": "input",
+                            "connected": False,
+                            "raw": response
+                        })
+                except Exception as e:
+                    diagnosis["signal_chain"].append({
+                        "stage": f"Input {rx.upper()}",
+                        "type": "input",
+                        "error": str(e)
+                    })
+
+            # 2. Query SPD (Source Product Descriptor) info - contains HDR metadata
+            for spd in ["spd0", "spd1"]:
+                try:
+                    response = self.send_command(f"get status {spd}")
+                    if response:
+                        diagnosis["signal_chain"].append({
+                            "stage": f"SPD {spd[-1]}",
+                            "type": "metadata",
+                            "raw": response,
+                            **self._parse_spd_status(response)
+                        })
+                except Exception:
+                    pass
+
+            # 3. Query output status (what's going to display/AVR)
+            for tx in ["tx0", "tx1"]:
+                try:
+                    response = self.send_command(f"get status {tx}")
+                    if response:
+                        signal_info = self._parse_signal_status(response, tx)
+                        diagnosis["signal_chain"].append({
+                            "stage": f"Output {tx.upper()}",
+                            "type": "output",
+                            **signal_info
+                        })
+                        # Track output HDR format
+                        if signal_info.get("hdr_format") != "SDR":
+                            diagnosis["hdr_status"]["output"]["format"] = signal_info.get("hdr_format")
+                            diagnosis["hdr_status"]["output"]["details"] = signal_info
+                except Exception as e:
+                    diagnosis["signal_chain"].append({
+                        "stage": f"Output {tx.upper()}",
+                        "type": "output",
+                        "error": str(e)
+                    })
+
+            # 4. Query sink capabilities (what display/AVR can accept)
+            for sink in ["tx0sink", "tx1sink"]:
+                try:
+                    response = self.send_command(f"get status {sink}")
+                    if response:
+                        diagnosis["signal_chain"].append({
+                            "stage": f"Sink {sink[-5:-4].upper()}{sink[-4:]}",
+                            "type": "sink",
+                            "raw": response,
+                            **self._parse_sink_capabilities(response)
+                        })
+                except Exception:
+                    pass
+
+            # 5. Query current EDID/HDR settings
+            edid_settings = [
+                "edidmode", "ediddvflag", "ediddvmode",
+                "edidhdrflag", "edidhdrmode", "hdrcustom",
+                "lldv", "hdrdisable"
+            ]
+            for setting in edid_settings:
+                try:
+                    value = self.get_setting(setting)
+                    if value and value.lower() not in ["error", "unknown"]:
+                        diagnosis["settings"][setting] = value
+                except Exception:
+                    pass
+
+            # 6. Analyze the chain and generate issues/recommendations
+            self._analyze_hdr_chain(diagnosis)
+
+            return diagnosis
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "ip_address": self.ip_address
+            }
+        finally:
+            self.disconnect()
+
+    def _parse_signal_status(self, response, port):
+        """Parse signal status string to extract video format info."""
+        info = {
+            "raw": response,
+            "resolution": None,
+            "refresh_rate": None,
+            "color_space": None,
+            "bit_depth": None,
+            "hdr_format": "SDR",
+            "colorimetry": None
+        }
+
+        if not response:
+            return info
+
+        parts = response.upper().split()
+
+        # Parse resolution (e.g., 3840x2160p60)
+        for part in parts:
+            res_match = re.match(r'(\d+)X(\d+)([PI])(\d+)', part)
+            if res_match:
+                info["resolution"] = f"{res_match.group(1)}x{res_match.group(2)}"
+                info["refresh_rate"] = int(res_match.group(4))
+                info["scan_type"] = "progressive" if res_match.group(3) == 'P' else "interlaced"
+                break
+
+        # Parse color space (422, 444, RGB)
+        for part in parts:
+            if part in ['422', '444', 'RGB', '420']:
+                info["color_space"] = part
+                break
+
+        # Parse bit depth
+        for part in parts:
+            if re.match(r'\d+B', part):
+                info["bit_depth"] = part
+                break
+
+        # Parse HDR format
+        if 'DV' in parts or 'DOLBY' in response.upper():
+            if 'LLDV' in response.upper():
+                info["hdr_format"] = "LLDV"
+            else:
+                info["hdr_format"] = "Dolby Vision"
+        elif 'HDR10+' in response.upper() or 'HDR10PLUS' in response.upper():
+            info["hdr_format"] = "HDR10+"
+        elif 'HDR10' in response.upper() or 'HDR' in parts:
+            info["hdr_format"] = "HDR10"
+        elif 'HLG' in parts:
+            info["hdr_format"] = "HLG"
+        else:
+            info["hdr_format"] = "SDR"
+
+        # Parse colorimetry (BT.2020, BT.709)
+        if 'BT2020' in response.upper() or 'BT.2020' in response.upper():
+            info["colorimetry"] = "BT.2020"
+        elif 'BT709' in response.upper() or 'BT.709' in response.upper():
+            info["colorimetry"] = "BT.709"
+
+        return info
+
+    def _parse_spd_status(self, response):
+        """Parse SPD (Source Product Descriptor) status."""
+        info = {
+            "vendor": None,
+            "product": None,
+            "hdr_metadata": None
+        }
+        # SPD typically contains vendor/product info and HDR metadata
+        if 'HDR' in response.upper():
+            info["hdr_metadata"] = "HDR metadata present"
+        if 'DV' in response.upper() or 'DOLBY' in response.upper():
+            info["hdr_metadata"] = "Dolby Vision metadata"
+        return info
+
+    def _parse_sink_capabilities(self, response):
+        """Parse sink (display/AVR) capabilities from status."""
+        caps = {
+            "hdr_capable": False,
+            "dv_capable": False,
+            "vrr_capable": False,
+            "max_resolution": None,
+            "supported_formats": []
+        }
+
+        upper = response.upper()
+        if 'HDR' in upper:
+            caps["hdr_capable"] = True
+            caps["supported_formats"].append("HDR10")
+        if 'HLG' in upper:
+            caps["supported_formats"].append("HLG")
+        if 'DV' in upper or 'DOLBY' in upper:
+            caps["dv_capable"] = True
+            caps["supported_formats"].append("Dolby Vision")
+        if 'VRR' in upper:
+            caps["vrr_capable"] = True
+
+        return caps
+
+    def _analyze_hdr_chain(self, diagnosis):
+        """Analyze the HDR signal chain and generate issues/recommendations."""
+        issues = []
+        recommendations = []
+        settings = diagnosis.get("settings", {})
+
+        # Check if input has HDR but output is SDR
+        input_hdr = diagnosis["hdr_status"]["input"]["format"]
+        output_hdr = diagnosis["hdr_status"]["output"]["format"]
+
+        if input_hdr != "SDR" and output_hdr == "SDR":
+            issues.append({
+                "severity": "critical",
+                "title": "HDR Lost in Signal Chain",
+                "description": f"Input signal is {input_hdr} but output is SDR. HDR is being stripped somewhere in the chain."
+            })
+
+            # Check EDID settings
+            if settings.get("edidhdrflag", "").lower() == "off":
+                recommendations.append({
+                    "priority": "high",
+                    "setting": "edidhdrflag",
+                    "current": "off",
+                    "recommended": "on",
+                    "title": "Enable HDR EDID Flag",
+                    "description": "The HDR flag is disabled in EDID. Enable it so sinks advertise HDR capability.",
+                    "command": "#vrroom set edidhdrflag on",
+                    "menu_path": "Vrroom Web UI > EDID > HDR FLAG"
+                })
+
+            if settings.get("hdrdisable", "").lower() == "on":
+                recommendations.append({
+                    "priority": "high",
+                    "setting": "hdrdisable",
+                    "current": "on",
+                    "recommended": "off",
+                    "title": "Disable HDR Disable Setting",
+                    "description": "HDR is explicitly disabled. Turn this off to allow HDR passthrough.",
+                    "command": "#vrroom set hdrdisable off",
+                    "menu_path": "Vrroom Web UI > SIGNAL > HDR DISABLE"
+                })
+
+        # Check for Dolby Vision to LLDV conversion
+        if input_hdr == "Dolby Vision":
+            if settings.get("ediddvflag", "").lower() != "on":
+                recommendations.append({
+                    "priority": "medium",
+                    "setting": "ediddvflag",
+                    "current": settings.get("ediddvflag", "unknown"),
+                    "recommended": "on",
+                    "title": "Enable Dolby Vision EDID Flag",
+                    "description": "DV flag should be enabled for proper LLDV conversion.",
+                    "command": "#vrroom set ediddvflag on",
+                    "menu_path": "Vrroom Web UI > EDID > DV FLAG"
+                })
+
+        # Check EDID mode
+        edid_mode = settings.get("edidmode", "").lower()
+        if edid_mode not in ["automix", "custom"]:
+            recommendations.append({
+                "priority": "medium",
+                "setting": "edidmode",
+                "current": edid_mode,
+                "recommended": "automix",
+                "title": "Use AutoMix EDID Mode",
+                "description": "AutoMix is recommended for best compatibility with mixed HDR/SDR content.",
+                "command": "#vrroom set edidmode automix",
+                "menu_path": "Vrroom Web UI > EDID > MODE"
+            })
+
+        # Check for no signal issues
+        no_input = all(
+            s.get("connected") == False
+            for s in diagnosis["signal_chain"]
+            if s.get("type") == "input"
+        )
+        if no_input:
+            issues.append({
+                "severity": "warning",
+                "title": "No Input Signal Detected",
+                "description": "No active input signal detected. Check source connections."
+            })
+
+        diagnosis["issues"] = issues
+        diagnosis["recommendations"] = recommendations
+
+    def get_all_settings_detailed(self):
+        """Get all settings with their current values and metadata for UI display."""
+        try:
+            self.connect()
+            settings_list = []
+
+            # Extended list of queryable settings
+            all_settings = [
+                "opmode", "insel", "autosw", "edidmode",
+                "ediddvflag", "ediddvmode", "edidhdrflag", "edidhdrmode",
+                "edidvrrflag", "edidallmflag", "edidfrlflag", "edidfrlmode",
+                "hdrcustom", "hdrdisable", "vrr", "allm", "frl",
+                "earc", "earcforce", "audioout", "unmutedelay",
+                "downscale", "cec", "hdcp", "oled", "oledfade",
+                "jvcmacro", "edidtruehdflag", "edidtruehdmode",
+                "edidddflag", "edidddplusflag", "ediddtsflag", "ediddtshdflag",
+                "edidpcmflag", "edidpcmchmode"
+            ]
+
+            for setting in all_settings:
+                try:
+                    value = self.get_setting(setting)
+                    if value and value.lower() not in ["error", "unknown", ""]:
+                        meta = VRROOM_SETTINGS_META.get(setting, {})
+                        settings_list.append({
+                            "key": setting,
+                            "value": value,
+                            "name": meta.get("name", setting),
+                            "menu_path": meta.get("menu_path", "Vrroom Web UI"),
+                            "tab": meta.get("tab", "Settings"),
+                            "description": meta.get("description", ""),
+                            "values": meta.get("values", {}),
+                            "can_modify": True
+                        })
+                except Exception:
+                    continue
+
+            return {"success": True, "settings": settings_list}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+        finally:
+            self.disconnect()
+
+
+# =============================================================================
+# Device Manuals Database
+# =============================================================================
+
+DEVICE_MANUALS = {
+    # Projectors
+    "epson_eh_ls12000b": {
+        "manual_url": "https://files.support.epson.com/docid/cpd5/cpd59971.pdf",
+        "quick_start_url": "https://files.support.epson.com/docid/cpd5/cpd59972.pdf",
+        "settings_screenshots": {
+            "hdmi_signal": "/static/manuals/epson_ls12000b_hdmi_signal.png",
+            "hdr_setting": "/static/manuals/epson_ls12000b_hdr.png"
+        }
+    },
+    "jvc_dla_nz8": {
+        "manual_url": "https://www.jvc.com/usa/projectors/instruction-manual/",
+        "settings_screenshots": {}
+    },
+    # AVRs
+    "yamaha_rx_a4a": {
+        "manual_url": "https://usa.yamaha.com/files/download/other_assets/7/1324417/RX-A4A_A6A_A8A_om_U_En.pdf",
+        "quick_start_url": "https://usa.yamaha.com/files/download/other_assets/7/1324418/RX-A4A_A6A_A8A_qg_U_En.pdf",
+        "settings_screenshots": {
+            "hdmi_enhanced": "/static/manuals/yamaha_rxa4a_hdmi_enhanced.png",
+            "ypao": "/static/manuals/yamaha_rxa4a_ypao.png"
+        }
+    },
+    "denon_avr_x3800h": {
+        "manual_url": "https://manuals.denon.com/AVRX3800H/NA/EN/",
+        "settings_screenshots": {}
+    },
+    # Sources
+    "nvidia_shield_pro": {
+        "manual_url": "https://www.nvidia.com/en-us/shield/support/shield-tv/",
+        "settings_screenshots": {
+            "display_settings": "/static/manuals/shield_display_settings.png",
+            "match_content": "/static/manuals/shield_match_content.png"
+        }
+    },
+    "apple_tv_4k": {
+        "manual_url": "https://support.apple.com/guide/tv/welcome/tvos",
+        "settings_screenshots": {}
+    },
+    "xbox_series_x": {
+        "manual_url": "https://support.xbox.com/help/hardware-network/console/xbox-series-x-s-manual",
+        "settings_screenshots": {
+            "video_modes": "/static/manuals/xbox_video_modes.png"
+        }
+    },
+    "ps5": {
+        "manual_url": "https://manuals.playstation.net/document/en/ps5/",
+        "settings_screenshots": {}
+    },
+    # HDMI Processors
+    "vrroom": {
+        "manual_url": "https://www.hdfury.com/docs/HDfuryVRRoom.pdf",
+        "firmware_url": "https://www.hdfury.com/firmware/",
+        "settings_screenshots": {
+            "edid_tab": "/static/manuals/vrroom_edid_tab.png",
+            "signal_tab": "/static/manuals/vrroom_signal_tab.png",
+            "audio_tab": "/static/manuals/vrroom_audio_tab.png"
+        }
+    }
+}
+
 
 # =============================================================================
 # Device Database
@@ -3030,8 +3454,27 @@ class SetupRecommendationEngine:
         self.avr_id = setup.get("avr", "")
         self.speaker_id = setup.get("speakers", "")
         self.screen_id = setup.get("screen", "")
-        self.media_server_id = setup.get("media_server", "")
         self.goals = setup.get("goals", [])
+
+        # Support multiple media servers
+        media_servers_input = setup.get("media_servers", [])
+        # Backwards compat: single media_server string
+        if not media_servers_input:
+            single = setup.get("media_server", "")
+            media_servers_input = [single] if single else []
+        elif isinstance(media_servers_input, str):
+            media_servers_input = [media_servers_input]
+
+        self.media_server_ids = [s for s in media_servers_input if s]
+        self.media_servers = []
+        for sid in self.media_server_ids:
+            profile = DEVICE_PROFILES["media_servers"].get(sid, {})
+            if profile:
+                self.media_servers.append((sid, profile))
+
+        # Keep first media server as primary for backwards compat
+        self.media_server_id = self.media_server_ids[0] if self.media_server_ids else ""
+        self.media_server = self.media_servers[0][1] if self.media_servers else {}
 
         # Support multiple sources (Vrroom is a 4x2 matrix)
         sources_input = setup.get("sources", [])
@@ -3058,7 +3501,7 @@ class SetupRecommendationEngine:
         self.avr = DEVICE_PROFILES["avrs"].get(self.avr_id, {})
         self.speakers = DEVICE_PROFILES["speakers"].get(self.speaker_id, {})
         self.screen = DEVICE_PROFILES["screens"].get(self.screen_id, {})
-        self.media_server = DEVICE_PROFILES["media_servers"].get(self.media_server_id, {})
+        # media_server already set above from media_servers array
 
     def generate(self):
         """Generate full recommendation set."""
@@ -3158,7 +3601,7 @@ class SetupRecommendationEngine:
                 "sources": [s[1].get("name", "Unknown") for s in self.sources] if self.sources else ["Not specified"],
                 "speakers": self.speakers.get("name", "Not specified"),
                 "screen": self.screen.get("name", "Not specified"),
-                "media_server": self.media_server.get("name", "Not specified"),
+                "media_servers": [s[1].get("name", "Unknown") for s in self.media_servers] if self.media_servers else ["Not specified"],
                 "goals": [OPTIMIZATION_GOALS[g]["name"] for g in self.goals if g in OPTIMIZATION_GOALS]
             },
             "recommendations": unique_recs,
@@ -4601,6 +5044,94 @@ def vrroom_command():
             "success": False,
             "error": str(e)
         }), 500
+
+
+@app.route("/api/vrroom/diagnose", methods=["POST"])
+def vrroom_diagnose_hdr():
+    """Diagnose HDR signal chain through Vrroom."""
+    data = request.get_json()
+    if not data or "ip" not in data:
+        return jsonify({"error": "IP address required"}), 400
+
+    ip = data.get("ip")
+    port = data.get("port", VrroomConnection.DEFAULT_PORT)
+
+    try:
+        connection = VrroomConnection(ip, int(port))
+        result = connection.diagnose_hdr_signal_chain()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/vrroom/settings", methods=["POST"])
+def vrroom_get_all_settings():
+    """Get all Vrroom settings with metadata for UI display."""
+    data = request.get_json()
+    if not data or "ip" not in data:
+        return jsonify({"error": "IP address required"}), 400
+
+    ip = data.get("ip")
+    port = data.get("port", VrroomConnection.DEFAULT_PORT)
+
+    try:
+        connection = VrroomConnection(ip, int(port))
+        result = connection.get_all_settings_detailed()
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/vrroom/set", methods=["POST"])
+def vrroom_set_setting():
+    """Set a single Vrroom setting."""
+    data = request.get_json()
+    if not data or "ip" not in data or "setting" not in data or "value" not in data:
+        return jsonify({"error": "IP, setting, and value required"}), 400
+
+    ip = data.get("ip")
+    port = data.get("port", VrroomConnection.DEFAULT_PORT)
+    setting = data.get("setting")
+    value = data.get("value")
+
+    try:
+        connection = VrroomConnection(ip, int(port))
+        connection.connect()
+        response = connection.set_setting(setting, value)
+        connection.disconnect()
+
+        return jsonify({
+            "success": True,
+            "setting": setting,
+            "value": value,
+            "response": response
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route("/api/manuals")
+def get_device_manuals():
+    """Get device manual links and references."""
+    return jsonify(DEVICE_MANUALS)
+
+
+@app.route("/api/manuals/<device_id>")
+def get_device_manual(device_id):
+    """Get manual info for a specific device."""
+    manual = DEVICE_MANUALS.get(device_id)
+    if not manual:
+        return jsonify({"error": "Manual not found"}), 404
+    return jsonify(manual)
 
 
 @app.route("/api/analyze/preroll", methods=["POST"])

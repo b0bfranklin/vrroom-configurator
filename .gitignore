@@ -9,11 +9,16 @@ venv/
 dist/
 build/
 
-# Uploads and exports (runtime data)
+# Uploads, exports, and backups (runtime data)
 uploads/*
 !uploads/.gitkeep
 exports/*
 !exports/.gitkeep
+backups/*
+!backups/.gitkeep
+
+# SQLite database
+*.db
 
 # IDE
 .vscode/
