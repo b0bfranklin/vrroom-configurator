@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vrroom Configurator - HDFury Config Analyzer</title>
+    <title>AV Signal Lab - Home Theater Signal Chain Optimizer</title>
     <style>
         :root {
             --bg-primary: #0d1117;
@@ -1164,8 +1164,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>Vrroom Configurator</h1>
-            <p>Optimize HDFury Vrroom settings for minimal HDMI handshake delays</p>
+            <h1>AV Signal Lab</h1>
+            <p>Home theater signal chain optimizer - minimize HDMI handshake delays and optimize HDR</p>
         </header>
 
         <div class="tabs">
@@ -1992,9 +1992,9 @@
         </div>
 
         <footer>
-            <p>Vrroom Configurator v1.1.0</p>
-            <p>For HDFury Vrroom Firmware 0.63+</p>
-            <p><a href="https://www.hdfury.com/docs/HDfuryVRRoom.pdf" target="_blank">Vrroom Manual</a></p>
+            <p>AV Signal Lab v1.2.0</p>
+            <p>Supports HDFury Vrroom, Vertex2, Diva, and other HDMI processors</p>
+            <p><a href="https://www.hdfury.com/docs/HDfuryVRRoom.pdf" target="_blank">HDFury Vrroom Manual</a></p>
         </footer>
     </div>
 
@@ -2846,6 +2846,7 @@
                         ${device.lldv_compatible !== undefined ? `<dt>LLDV Compatible</dt><dd>${device.lldv_compatible ? 'Yes' : 'No'}</dd>` : ''}
                         ${device.lldv_support !== undefined ? `<dt>LLDV Support</dt><dd>${device.lldv_support ? 'Yes' : 'No'}</dd>` : ''}
                         ${device.vrr_support !== undefined ? `<dt>VRR</dt><dd>${device.vrr_support ? 'Yes' : 'No'}</dd>` : ''}
+                        ${device.qms_support !== undefined ? `<dt>QMS (QuickSync)</dt><dd style="${device.qms_support ? 'color: var(--accent-green); font-weight: bold;' : ''}">${device.qms_support ? 'Yes - No bonk!' : 'No'}</dd>` : ''}
                         ${device.earc_support !== undefined ? `<dt>eARC</dt><dd>${device.earc_support ? 'Yes' : 'No'}</dd>` : ''}
                         ${device.atmos_support !== undefined ? `<dt>Atmos</dt><dd>${device.atmos_support ? 'Yes' : 'No'}</dd>` : ''}
                         ${device.atmos_capable !== undefined ? `<dt>Atmos Capable</dt><dd>${device.atmos_capable ? 'Yes' : 'No'}</dd>` : ''}

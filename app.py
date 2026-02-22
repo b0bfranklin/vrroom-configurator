@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Vrroom Configurator - HDFury Vrroom Configuration Analyzer
-Optimizes configs for minimal HDMI handshake delays (bonk) and LLDV support
+AV Signal Lab - Home Theater Signal Chain Optimizer
+Optimizes HDMI signal chain for minimal handshake delays (bonk), HDR passthrough, and LLDV support
 """
 
 import copy
@@ -874,6 +874,7 @@ DEVICE_PROFILES = {
             "recommended_edid": "automix",
             "vrr_support": False,
             "allm_support": False,
+            "qms_support": False,  # QMS (Quick Media Switching) - HDMI 2.1 feature that eliminates bonk
             "light_source": "laser",
             "light_output_lumens": 2700,
             "native_contrast": "2500000:1",
@@ -1020,7 +1021,8 @@ DEVICE_PROFILES = {
             "recommended_edid": "automix",
             "vrr_support": True,
             "allm_support": True,
-            "notes": "Native DV support. LLDV not required but Vrroom can still optimize handshake."
+            "qms_support": True,  # QMS eliminates bonk - no HDMI processor needed for frame rate switching
+            "notes": "Native DV support. QMS support eliminates bonk without HDMI processor."
         },
         "samsung_qn90c": {
             "name": "Samsung QN90C",
@@ -1331,9 +1333,10 @@ DEVICE_PROFILES = {
             "recommended_edid": "automix",
             "vrr_support": True,
             "allm_support": True,
+            "qms_support": True,  # QMS eliminates bonk natively
             "earc_support": True,
             "panel_tech": "WOLED evo",
-            "notes": "Native DV. Popular gaming OLED with 4x HDMI 2.1 ports."
+            "notes": "Native DV. QMS support. Popular gaming OLED with 4x HDMI 2.1 ports."
         },
         "lg_c1_oled": {
             "name": "LG C1 OLED",
@@ -2065,7 +2068,10 @@ DEVICE_PROFILES = {
             "match_frame_rate": False,
             "match_resolution": False,
             "hdcp": "2.3",
-            "notes": "Gaming source. Enable VRR/ALLM for best gaming experience."
+            "qms_support": True,  # Supports QMS for seamless refresh rate switching
+            "vrr_support": True,
+            "allm_support": True,
+            "notes": "Gaming source with QMS. Enable VRR/ALLM for best gaming experience."
         },
         "ps5": {
             "name": "PlayStation 5",
@@ -2078,7 +2084,10 @@ DEVICE_PROFILES = {
             "match_frame_rate": False,
             "match_resolution": False,
             "hdcp": "2.3",
-            "notes": "HDR10 gaming. No DV support. VRR available."
+            "qms_support": True,  # Supports QMS for seamless refresh rate switching
+            "vrr_support": True,
+            "allm_support": True,
+            "notes": "HDR10 gaming with QMS. No DV support. VRR available."
         },
         "kaleidescape_strato": {
             "name": "Kaleidescape Strato",
@@ -4601,7 +4610,7 @@ class VrroomConfigAnalyzer:
 
         optimized["_optimized"] = True
         optimized["_optimized_date"] = datetime.now().isoformat()
-        optimized["_optimized_by"] = "Vrroom Configurator"
+        optimized["_optimized_by"] = "AV Signal Lab"
 
         return optimized
 
@@ -5659,7 +5668,7 @@ if __name__ == "__main__":
     debug = os.environ.get("FLASK_DEBUG", "1") == "1"
 
     print("\n" + "=" * 60)
-    print("  Vrroom Configurator - HDFury Vrroom Config Analyzer")
+    print("  AV Signal Lab - Home Theater Signal Chain Optimizer")
     print("=" * 60)
     print(f"  Upload folder: {app.config['UPLOAD_FOLDER']}")
     print(f"  Export folder: {app.config['EXPORT_FOLDER']}")

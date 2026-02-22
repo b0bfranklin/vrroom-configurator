@@ -1,33 +1,43 @@
 # Supported Devices Database
 
-This document lists all pre-configured devices in the Vrroom Configurator. Users can also add custom devices through the web interface.
+This document lists all pre-configured devices in AV Signal Lab. Users can also add custom devices through the web interface.
+
+## What is QMS (Quick Media Switching)?
+
+**QMS (Quick Media Switching)** is an HDMI 2.1 feature that eliminates the "bonk" (black screen during frame rate changes) without needing an HDMI processor. When both your source AND display support QMS, frame rate switching happens seamlessly.
+
+- **Source** (e.g., Xbox Series X, PS5) sends QMS signal
+- **Display** (e.g., LG C2/C3 OLED) receives and handles it instantly
+- **Result**: No black screen when switching between 24Hz movies and 60Hz menus
+
+If your devices support QMS, you may not need an HDMI processor for bonk elimination!
 
 ## Displays
 
 ### Projectors
 
-| Device | Type | Native DV | LLDV Compatible | Max Resolution | VRR | Notes |
-|--------|------|-----------|-----------------|----------------|-----|-------|
-| Epson EH-LS12000b | Laser | No | Yes | 4K@120Hz | No | Use LLDV for DV content. 2700 lumens laser. |
-| JVC DLA-NZ7 | Laser D-ILA | No | Yes | 4K@120Hz | No | E-shift 4K. Frame Adapt HDR. |
-| JVC DLA-NZ8 | Laser D-ILA | No | Yes | 4K@120Hz | No | Native 4K D-ILA. Frame Adapt HDR. |
-| JVC DLA-NZ9 | Laser D-ILA | No | Yes | 8K e-shift | No | Flagship JVC. Best LLDV candidate. |
-| Sony VPL-XW5000ES | Laser SXRD | No | Yes | 4K@120Hz | No | Entry Sony native 4K laser. |
-| Sony VPL-XW7000ES | Laser SXRD | No | Yes | 4K@120Hz | No | Fast HDMI handshake. Good HDR. |
-| BenQ W5800 | Laser DLP | No | Yes | 4K@60Hz | No | BenQ laser projector. |
-| Optoma UHZ50 | Laser DLP | No | Yes | 4K@60Hz | No | Budget 4K laser projector. |
+| Device | Type | Native DV | LLDV | Max Res | VRR | QMS | Notes |
+|--------|------|-----------|------|---------|-----|-----|-------|
+| Epson EH-LS12000b | Laser | No | Yes | 4K@120Hz | No | No | Use LLDV for DV content. 2700 lumens laser. |
+| JVC DLA-NZ7 | Laser D-ILA | No | Yes | 4K@120Hz | No | No | E-shift 4K. Frame Adapt HDR. |
+| JVC DLA-NZ8 | Laser D-ILA | No | Yes | 4K@120Hz | No | No | Native 4K D-ILA. Frame Adapt HDR. |
+| JVC DLA-NZ9 | Laser D-ILA | No | Yes | 8K e-shift | No | No | Flagship JVC. Best LLDV candidate. |
+| Sony VPL-XW5000ES | Laser SXRD | No | Yes | 4K@120Hz | No | No | Entry Sony native 4K laser. |
+| Sony VPL-XW7000ES | Laser SXRD | No | Yes | 4K@120Hz | No | No | Fast HDMI handshake. Good HDR. |
+| BenQ W5800 | Laser DLP | No | Yes | 4K@60Hz | No | No | BenQ laser projector. |
+| Optoma UHZ50 | Laser DLP | No | Yes | 4K@60Hz | No | No | Budget 4K laser projector. |
 
 ### TVs
 
-| Device | Type | Native DV | LLDV Compatible | Max Resolution | VRR | Notes |
-|--------|------|-----------|-----------------|----------------|-----|-------|
-| LG C1 OLED | WOLED | Yes | Yes | 4K@120Hz | Yes | Popular gaming OLED. Native DV. |
-| LG C2 OLED | WOLED evo | Yes | Yes | 4K@120Hz | Yes | 4x HDMI 2.1 ports. |
-| LG C3 OLED | WOLED | Yes | Yes | 4K@120Hz | Yes | Latest C series. Native DV. |
-| LG C4 OLED | WOLED | Yes | Yes | 4K@144Hz | Yes | 2024 C series. Native DV. |
-| LG G4 OLED | MLA WOLED | Yes | Yes | 4K@144Hz | Yes | Gallery series. Brightest LG OLED. |
-| Samsung QN90C | Neo QLED | No | No | 4K@144Hz | Yes | No DV - use HDR10+. |
-| Samsung QN95C | Neo QLED | No | No | 4K@144Hz | Yes | Flagship Neo QLED. One Connect Box. |
+| Device | Type | Native DV | LLDV | Max Res | VRR | QMS | Notes |
+|--------|------|-----------|------|---------|-----|-----|-------|
+| LG C1 OLED | WOLED | Yes | Yes | 4K@120Hz | Yes | Yes | Popular gaming OLED. QMS support. |
+| LG C2 OLED | WOLED evo | Yes | Yes | 4K@120Hz | Yes | **Yes** | QMS eliminates bonk natively! |
+| LG C3 OLED | WOLED | Yes | Yes | 4K@120Hz | Yes | **Yes** | QMS eliminates bonk natively! |
+| LG C4 OLED | WOLED | Yes | Yes | 4K@144Hz | Yes | **Yes** | 2024 C series with QMS. |
+| LG G4 OLED | MLA WOLED | Yes | Yes | 4K@144Hz | Yes | **Yes** | Gallery series with QMS. |
+| Samsung QN90C | Neo QLED | No | No | 4K@144Hz | Yes | Yes | No DV - use HDR10+. Has QMS. |
+| Samsung QN95C | Neo QLED | No | No | 4K@144Hz | Yes | Yes | Flagship Neo QLED with QMS. |
 | Samsung S95D | QD-OLED | No | No | 4K@144Hz | Yes | Samsung QD-OLED. No DV. |
 | Samsung QN70F 75" | Neo QLED | No | No | 4K@144Hz | Yes | QA75QN70FAWXXY. HDR10+ support. |
 | Sony A95K | QD-OLED | Yes | Yes | 4K@120Hz | Yes | Sony QD-OLED. Excellent DV. |
