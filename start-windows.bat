@@ -1,6 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
+REM Change to the directory containing this script
+cd /d "%~dp0"
+
 echo ============================================================
 echo   Vrroom Configurator - HDFury Vrroom Config Analyzer
 echo ============================================================
