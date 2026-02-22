@@ -816,6 +816,349 @@
                 grid-template-columns: 1fr 1fr;
             }
         }
+
+        /* ============================================================= */
+        /* Collapsible Sections                                          */
+        /* ============================================================= */
+
+        .collapsible-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .collapsible-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .collapsible-header:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .collapsible-header h2 {
+            margin: 0;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .collapsible-header .toggle-icon {
+            font-size: 1.2em;
+            transition: transform 0.3s;
+            color: var(--text-secondary);
+        }
+
+        .collapsible-card.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .collapsible-content {
+            padding: 0 20px 20px;
+            transition: all 0.3s ease;
+        }
+
+        .collapsible-card.collapsed .collapsible-content {
+            display: none;
+        }
+
+        .section-icon {
+            font-size: 1.3em;
+        }
+
+        /* ============================================================= */
+        /* Signal Chain Visualization                                    */
+        /* ============================================================= */
+
+        .signal-chain {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 20px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+
+        .signal-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .signal-node.source {
+            border-color: var(--accent-blue);
+        }
+
+        .signal-node.processor {
+            border-color: var(--accent-purple);
+        }
+
+        .signal-node.output-video {
+            border-color: var(--accent-green);
+        }
+
+        .signal-node.output-audio {
+            border-color: var(--accent-yellow);
+        }
+
+        .signal-node .node-icon {
+            font-size: 1.5em;
+            margin-bottom: 6px;
+        }
+
+        .signal-node .node-label {
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .signal-node .node-status {
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .signal-node .hdr-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+
+        .hdr-badge.hdr {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .hdr-badge.dv {
+            background: var(--accent-purple);
+            color: white;
+        }
+
+        .hdr-badge.lldv {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-green));
+            color: white;
+        }
+
+        .hdr-badge.sdr {
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+
+        .signal-arrow {
+            color: var(--text-secondary);
+            font-size: 1.5em;
+            flex-shrink: 0;
+        }
+
+        .signal-arrow.video {
+            color: var(--accent-green);
+        }
+
+        .signal-arrow.audio {
+            color: var(--accent-yellow);
+        }
+
+        /* HDR Diagnostic Panel */
+        .hdr-diagnostic {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        .hdr-diagnostic h3 {
+            margin: 0 0 16px;
+            color: var(--text-primary);
+        }
+
+        .diagnostic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .diagnostic-item {
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+        }
+
+        .diagnostic-item .label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .diagnostic-item .value {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .diagnostic-item .value.good {
+            color: var(--accent-green);
+        }
+
+        .diagnostic-item .value.warning {
+            color: var(--accent-yellow);
+        }
+
+        .diagnostic-item .value.error {
+            color: var(--accent-red);
+        }
+
+        /* ============================================================= */
+        /* Settings Toggle Control                                       */
+        /* ============================================================= */
+
+        .setting-control {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .setting-path {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
+
+        .setting-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .setting-value-display {
+            padding: 4px 10px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .setting-toggle {
+            position: relative;
+            width: 48px;
+            height: 24px;
+        }
+
+        .setting-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .setting-toggle .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+
+        .setting-toggle .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .setting-toggle input:checked + .slider {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .setting-toggle input:checked + .slider:before {
+            transform: translateX(24px);
+            background: white;
+        }
+
+        .btn-apply-setting {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-apply-setting:hover {
+            opacity: 0.9;
+        }
+
+        /* Multi-select checkboxes grid */
+        .multi-select-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 8px;
+        }
+
+        .multi-select-grid label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .multi-select-grid label:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .multi-select-grid label.checked {
+            border-color: var(--accent-green);
+            background: rgba(63, 185, 80, 0.1);
+        }
+
+        .multi-select-grid input[type="checkbox"] {
+            accent-color: var(--accent-green);
+        }
     </style>
 </head>
 <body>
@@ -836,40 +1179,113 @@
 
         <!-- My Setup Tab -->
         <div id="setup" class="tab-content active">
-            <div class="card">
-                <h2>Equipment Selection</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                    Select your home theater equipment to get tailored optimization recommendations.
-                </p>
-                <div class="setup-form">
-                    <div class="form-group">
-                        <label for="setup-display">Display (Projector / TV)</label>
-                        <select id="setup-display">
-                            <option value="">-- Select Display --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="setup-hdfury">HDFury Device</label>
-                        <select id="setup-hdfury">
-                            <option value="">-- Select HDFury Device --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="setup-avr">AV Receiver</label>
-                        <select id="setup-avr">
-                            <option value="">-- Select AV Receiver --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Source Devices (select all connected to Vrroom)</label>
-                        <div id="setup-sources-checkboxes" class="sources-checkbox-grid">
-                            <!-- Populated by JS -->
+            <!-- Signal Chain Overview -->
+            <div class="collapsible-card" id="signal-chain-card">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h2><span class="section-icon">&#128268;</span> Signal Chain</h2>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Your home theater signal flow. Video and audio take separate paths after the HDMI processor.
+                    </p>
+                    <div class="signal-chain" id="signal-chain-display">
+                        <!-- Populated by JS based on equipment selection -->
+                        <div class="signal-node source">
+                            <span class="node-icon">&#127918;</span>
+                            <span class="node-label">Sources</span>
+                            <span class="node-status">Select below</span>
+                        </div>
+                        <span class="signal-arrow">&#8594;</span>
+                        <div class="signal-node processor">
+                            <span class="node-icon">&#128247;</span>
+                            <span class="node-label">HDMI Processor</span>
+                            <span class="node-status">Select below</span>
+                        </div>
+                        <span class="signal-arrow video">&#8594; Video</span>
+                        <div class="signal-node output-video">
+                            <span class="node-icon">&#128250;</span>
+                            <span class="node-label">Display</span>
+                            <span class="node-status">Select below</span>
                         </div>
                     </div>
+                    <div class="signal-chain" id="audio-chain-display" style="margin-top: 8px;">
+                        <div style="width: 248px;"></div><!-- Spacer to align with processor -->
+                        <div class="signal-node processor" style="opacity: 0.5;">
+                            <span class="node-icon">&#128247;</span>
+                            <span class="node-label">HDMI Processor</span>
+                            <span class="node-status">Audio passthrough</span>
+                        </div>
+                        <span class="signal-arrow audio">&#8594; Audio</span>
+                        <div class="signal-node output-audio">
+                            <span class="node-icon">&#128266;</span>
+                            <span class="node-label">AVR</span>
+                            <span class="node-status">Select below</span>
+                        </div>
+                        <span class="signal-arrow audio">&#8594;</span>
+                        <div class="signal-node output-audio">
+                            <span class="node-icon">&#128264;</span>
+                            <span class="node-label">Speakers</span>
+                            <span class="node-status">Select below</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Source Devices -->
+            <div class="collapsible-card" id="sources-card">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h2><span class="section-icon">&#127918;</span> Source Devices</h2>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Select all devices connected to your HDMI processor inputs.
+                    </p>
+                    <div id="setup-sources-checkboxes" class="multi-select-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- HDMI Processor -->
+            <div class="collapsible-card" id="processor-card">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h2><span class="section-icon">&#128247;</span> HDMI Processor</h2>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        HDMI matrix/processor device that handles EDID, HDR conversion, and signal routing.
+                    </p>
                     <div class="form-group">
-                        <label for="setup-speakers">Speaker Setup</label>
-                        <select id="setup-speakers">
-                            <option value="">-- Select Speaker Setup --</option>
+                        <label for="setup-hdfury">Select Device</label>
+                        <select id="setup-hdfury">
+                            <option value="">-- Select HDMI Processor --</option>
+                        </select>
+                    </div>
+                    <div id="processor-manual-link" style="margin-top: 12px; display: none;">
+                        <a href="#" target="_blank" class="btn btn-secondary" id="processor-manual-btn">
+                            &#128196; View Manual
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Display -->
+            <div class="collapsible-card" id="display-card">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h2><span class="section-icon">&#128250;</span> Display (Projector / TV)</h2>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Video output destination. Connected directly to HDMI processor for video.
+                    </p>
+                    <div class="form-group">
+                        <label for="setup-display">Select Display</label>
+                        <select id="setup-display">
+                            <option value="">-- Select Display --</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -878,22 +1294,73 @@
                             <option value="">-- Select Screen --</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="setup-media-server">Media Server</label>
-                        <select id="setup-media-server">
-                            <option value="">-- Select Media Server --</option>
-                        </select>
+                    <div id="display-manual-link" style="margin-top: 12px; display: none;">
+                        <a href="#" target="_blank" class="btn btn-secondary" id="display-manual-btn">
+                            &#128196; View Manual
+                        </a>
                     </div>
                 </div>
             </div>
 
-            <div class="card">
-                <h2>Optimization Goals</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                    Select what you want to optimize. Recommendations will be tailored to your goals.
-                </p>
-                <div class="goals-grid" id="goals-grid">
-                    <!-- Goals will be populated from /api/goals -->
+            <!-- Audio Equipment -->
+            <div class="collapsible-card" id="audio-card">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h2><span class="section-icon">&#128266;</span> Audio Equipment</h2>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Audio is passed through HDMI processor to AVR via HDMI/eARC, then to speakers.
+                    </p>
+                    <div class="form-group">
+                        <label for="setup-avr">AV Receiver / Soundbar</label>
+                        <select id="setup-avr">
+                            <option value="">-- Select AV Receiver --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="setup-speakers">Speaker Configuration</label>
+                        <select id="setup-speakers">
+                            <option value="">-- Select Speaker Setup --</option>
+                        </select>
+                    </div>
+                    <div id="avr-manual-link" style="margin-top: 12px; display: none;">
+                        <a href="#" target="_blank" class="btn btn-secondary" id="avr-manual-btn">
+                            &#128196; View AVR Manual
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Media Servers -->
+            <div class="collapsible-card" id="media-server-card">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h2><span class="section-icon">&#128187;</span> Media Servers</h2>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Select all media server software you use. You can select multiple.
+                    </p>
+                    <div id="setup-media-servers-checkboxes" class="multi-select-grid">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optimization Goals -->
+            <div class="collapsible-card" id="goals-card">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h2><span class="section-icon">&#127919;</span> Optimization Goals</h2>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Select what you want to optimize. Recommendations will be tailored to your goals.
+                    </p>
+                    <div class="goals-grid" id="goals-grid">
+                        <!-- Goals will be populated from /api/goals -->
+                    </div>
                 </div>
             </div>
 
@@ -1058,8 +1525,59 @@
                 <div id="vrroom-detected-inputs" style="margin-top: 12px; display: none;"></div>
             </div>
 
+            <!-- HDR Signal Chain Diagnostic -->
+            <div class="card" id="hdr-diagnostic-card" style="display: none;">
+                <h2>&#128269; HDR Signal Chain Diagnostic</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Analyze where HDR is being lost in your signal chain. Click to diagnose.
+                </p>
+                <button class="btn" id="diagnose-hdr-btn" onclick="diagnoseHDRChain()">
+                    Run HDR Diagnostic
+                </button>
+                <div id="hdr-diagnostic-results" style="display: none; margin-top: 20px;">
+                    <!-- Signal chain visualization -->
+                    <h3 style="margin-bottom: 12px;">Signal Flow</h3>
+                    <div class="signal-chain" id="diagnostic-signal-chain">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <!-- Diagnostic summary -->
+                    <div class="diagnostic-grid" id="diagnostic-summary" style="margin-top: 16px;">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <!-- Issues found -->
+                    <div id="diagnostic-issues" style="margin-top: 20px;"></div>
+
+                    <!-- Quick fix recommendations -->
+                    <div id="diagnostic-recommendations" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- Settings Management -->
+            <div class="card" id="vrroom-settings-management" style="display: none;">
+                <h2>&#9881; Settings Management</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    View and modify Vrroom settings directly. Changes are applied immediately.
+                </p>
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <button class="btn btn-secondary" onclick="refreshVrroomSettings()">
+                        &#128260; Refresh Settings
+                    </button>
+                    <select id="settings-filter" onchange="filterSettings(this.value)" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px;">
+                        <option value="all">All Settings</option>
+                        <option value="EDID">EDID Settings</option>
+                        <option value="SIGNAL">Signal Settings</option>
+                        <option value="AUDIO">Audio Settings</option>
+                    </select>
+                </div>
+                <div id="vrroom-settings-list">
+                    <!-- Populated by JS with setting controls -->
+                </div>
+            </div>
+
             <div class="card" id="vrroom-live-config" style="display: none;">
-                <h2>Live Configuration</h2>
+                <h2>Live Configuration Summary</h2>
                 <p style="color: var(--text-secondary); margin-bottom: 16px;">
                     Current settings fetched from your Vrroom device.
                 </p>
@@ -1566,9 +2084,13 @@
                     // Save IP for future use
                     localStorage.setItem('vrroom_ip', ip);
                     localStorage.setItem('vrroom_port', port);
-                    // Show backup and detect buttons
+                    // Show backup, detect, and diagnostic buttons/cards
                     document.getElementById('backup-vrroom-btn').style.display = 'inline-block';
                     document.getElementById('detect-vrroom-btn').style.display = 'inline-block';
+                    document.getElementById('hdr-diagnostic-card').style.display = 'block';
+                    document.getElementById('vrroom-settings-management').style.display = 'block';
+                    // Load detailed settings
+                    loadVrroomSettings();
                 } else {
                     statusDiv.innerHTML = '<span style="color: var(--accent-red);">Connection failed: ' + (data.error || 'Unknown error') + '</span>';
                 }
@@ -1647,6 +2169,370 @@
                 document.getElementById('vrroom-port').value = savedPort;
             }
         })();
+
+        // =================================================================
+        // Collapsible sections
+        // =================================================================
+        function toggleCollapsible(header) {
+            const card = header.closest('.collapsible-card');
+            card.classList.toggle('collapsed');
+            // Save state to localStorage
+            const cardId = card.id;
+            if (cardId) {
+                const collapsed = card.classList.contains('collapsed');
+                localStorage.setItem('collapsed_' + cardId, collapsed);
+            }
+        }
+
+        // Restore collapsed state on load
+        document.querySelectorAll('.collapsible-card').forEach(card => {
+            const cardId = card.id;
+            if (cardId) {
+                const collapsed = localStorage.getItem('collapsed_' + cardId);
+                if (collapsed === 'true') {
+                    card.classList.add('collapsed');
+                }
+            }
+        });
+
+        // =================================================================
+        // HDR Signal Chain Diagnostic
+        // =================================================================
+        async function diagnoseHDRChain() {
+            const ip = localStorage.getItem('vrroom_ip');
+            const port = localStorage.getItem('vrroom_port') || '2222';
+            const btn = document.getElementById('diagnose-hdr-btn');
+            const resultsDiv = document.getElementById('hdr-diagnostic-results');
+
+            if (!ip) {
+                alert('Please connect to Vrroom first');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Diagnosing...';
+
+            try {
+                const response = await fetch('/api/vrroom/diagnose', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip: ip, port: parseInt(port) })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    displayHDRDiagnostic(data);
+                    resultsDiv.style.display = 'block';
+                } else {
+                    alert('Diagnostic failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Diagnostic error: ' + err.message);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Run HDR Diagnostic';
+        }
+
+        function displayHDRDiagnostic(data) {
+            const chainDiv = document.getElementById('diagnostic-signal-chain');
+            const summaryDiv = document.getElementById('diagnostic-summary');
+            const issuesDiv = document.getElementById('diagnostic-issues');
+            const recsDiv = document.getElementById('diagnostic-recommendations');
+
+            // Build signal chain visualization
+            const chain = data.signal_chain || [];
+            let chainHtml = '';
+
+            chain.forEach((stage, idx) => {
+                if (idx > 0) {
+                    chainHtml += '<span class="signal-arrow">&#8594;</span>';
+                }
+
+                const hdrFormat = stage.hdr_format || 'SDR';
+                const badgeClass = hdrFormat === 'SDR' ? 'sdr' :
+                                   hdrFormat === 'LLDV' ? 'lldv' :
+                                   hdrFormat.includes('Dolby') ? 'dv' : 'hdr';
+
+                const nodeClass = stage.type === 'input' ? 'source' :
+                                  stage.type === 'output' ? 'output-video' :
+                                  stage.type === 'sink' ? 'output-audio' : 'processor';
+
+                chainHtml += `
+                    <div class="signal-node ${nodeClass}">
+                        <span class="node-label">${stage.stage}</span>
+                        ${stage.resolution ? `<span class="node-status">${stage.resolution} ${stage.refresh_rate || ''}Hz</span>` : ''}
+                        ${stage.connected === false ? '<span class="node-status" style="color: var(--accent-red);">No Signal</span>' : ''}
+                        <span class="hdr-badge ${badgeClass}">${hdrFormat}</span>
+                    </div>
+                `;
+            });
+
+            chainDiv.innerHTML = chainHtml || '<p style="color: var(--text-secondary);">No signal data available</p>';
+
+            // Build summary
+            const hdrStatus = data.hdr_status || {};
+            const inputHdr = hdrStatus.input?.format || 'Unknown';
+            const outputHdr = hdrStatus.output?.format || 'Unknown';
+            const hdrLost = inputHdr !== 'SDR' && outputHdr === 'SDR';
+
+            summaryDiv.innerHTML = `
+                <div class="diagnostic-item">
+                    <div class="label">Input HDR Format</div>
+                    <div class="value ${inputHdr !== 'SDR' ? 'good' : ''}">${inputHdr}</div>
+                </div>
+                <div class="diagnostic-item">
+                    <div class="label">Output HDR Format</div>
+                    <div class="value ${hdrLost ? 'error' : outputHdr !== 'SDR' ? 'good' : ''}">${outputHdr}</div>
+                </div>
+                <div class="diagnostic-item">
+                    <div class="label">HDR Status</div>
+                    <div class="value ${hdrLost ? 'error' : 'good'}">${hdrLost ? 'HDR LOST!' : inputHdr === 'SDR' ? 'SDR Input' : 'HDR Passing'}</div>
+                </div>
+            `;
+
+            // Display issues
+            const issues = data.issues || [];
+            if (issues.length > 0) {
+                issuesDiv.innerHTML = `
+                    <h3>Issues Found</h3>
+                    ${issues.map(issue => `
+                        <div class="issue ${issue.severity}">
+                            <div class="issue-header">
+                                <span class="issue-badge">${issue.severity}</span>
+                                <span class="issue-title">${issue.title}</span>
+                            </div>
+                            <div class="issue-description">${issue.description}</div>
+                        </div>
+                    `).join('')}
+                `;
+            } else {
+                issuesDiv.innerHTML = '<p style="color: var(--accent-green);">&#10003; No issues detected</p>';
+            }
+
+            // Display recommendations with quick-apply buttons
+            const recs = data.recommendations || [];
+            if (recs.length > 0) {
+                recsDiv.innerHTML = `
+                    <h3>Recommended Fixes</h3>
+                    ${recs.map(rec => `
+                        <div class="setting-control">
+                            <div class="setting-info">
+                                <div class="setting-name">${rec.title}</div>
+                                <div class="setting-path">${rec.menu_path || ''}</div>
+                                <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.9em;">${rec.description}</p>
+                            </div>
+                            <div class="setting-actions">
+                                <span class="setting-value-display">${rec.current} → ${rec.recommended}</span>
+                                <button class="btn-apply-setting" onclick="applySettingFix('${rec.setting}', '${rec.recommended}')">
+                                    Apply Fix
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+            } else {
+                recsDiv.innerHTML = '';
+            }
+        }
+
+        async function applySettingFix(setting, value) {
+            const ip = localStorage.getItem('vrroom_ip');
+            const port = localStorage.getItem('vrroom_port') || '2222';
+
+            if (!confirm(`Apply setting ${setting} = ${value}?`)) return;
+
+            try {
+                const response = await fetch('/api/vrroom/set', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip: ip, port: parseInt(port), setting: setting, value: value })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Setting applied successfully! Run diagnostic again to verify.');
+                    diagnoseHDRChain();  // Re-run diagnostic
+                } else {
+                    alert('Failed to apply setting: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Error applying setting: ' + err.message);
+            }
+        }
+
+        // =================================================================
+        // Vrroom Settings Management
+        // =================================================================
+        let currentVrroomSettings = [];
+
+        async function loadVrroomSettings() {
+            const ip = localStorage.getItem('vrroom_ip');
+            const port = localStorage.getItem('vrroom_port') || '2222';
+            const listDiv = document.getElementById('vrroom-settings-list');
+
+            if (!ip) return;
+
+            listDiv.innerHTML = '<p style="color: var(--text-secondary);">Loading settings...</p>';
+
+            try {
+                const response = await fetch('/api/vrroom/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip: ip, port: parseInt(port) })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    currentVrroomSettings = data.settings || [];
+                    displayVrroomSettings(currentVrroomSettings);
+                } else {
+                    listDiv.innerHTML = '<p style="color: var(--accent-red);">Failed to load settings</p>';
+                }
+            } catch (err) {
+                listDiv.innerHTML = '<p style="color: var(--accent-red);">Error: ' + err.message + '</p>';
+            }
+        }
+
+        function refreshVrroomSettings() {
+            loadVrroomSettings();
+        }
+
+        function filterSettings(tab) {
+            if (tab === 'all') {
+                displayVrroomSettings(currentVrroomSettings);
+            } else {
+                const filtered = currentVrroomSettings.filter(s => s.tab === tab);
+                displayVrroomSettings(filtered);
+            }
+        }
+
+        function displayVrroomSettings(settings) {
+            const listDiv = document.getElementById('vrroom-settings-list');
+
+            if (!settings || settings.length === 0) {
+                listDiv.innerHTML = '<p style="color: var(--text-secondary);">No settings found</p>';
+                return;
+            }
+
+            listDiv.innerHTML = settings.map(s => {
+                const isToggle = s.values && (s.values.on || s.values.off);
+                const isOn = s.value && s.value.toLowerCase() === 'on';
+
+                // Build value display/selector
+                let valueHtml = '';
+                if (isToggle) {
+                    valueHtml = `
+                        <label class="setting-toggle">
+                            <input type="checkbox" ${isOn ? 'checked' : ''}
+                                   onchange="toggleVrroomSetting('${s.key}', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    `;
+                } else if (typeof s.values === 'object' && Object.keys(s.values).length > 0) {
+                    valueHtml = `
+                        <select onchange="changeVrroomSetting('${s.key}', this.value)"
+                                style="background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; padding: 6px 10px;">
+                            ${Object.entries(s.values).map(([val, label]) => `
+                                <option value="${val}" ${s.value === val ? 'selected' : ''}>${label}</option>
+                            `).join('')}
+                        </select>
+                    `;
+                } else {
+                    valueHtml = `<span class="setting-value-display">${s.value}</span>`;
+                }
+
+                // Status indicator
+                const statusIcon = (isToggle && isOn) || (s.value && s.value.toLowerCase() !== 'off' && s.value !== '0')
+                    ? '<span style="color: var(--accent-green); margin-right: 6px;">&#10003;</span>'
+                    : '<span style="color: var(--text-secondary); margin-right: 6px;">&#10007;</span>';
+
+                return `
+                    <div class="setting-control" data-tab="${s.tab}">
+                        <div class="setting-info">
+                            <div class="setting-name">${statusIcon}${s.name}</div>
+                            <div class="setting-path">
+                                <span style="color: var(--accent-blue);">${s.tab}</span> → ${s.menu_path}
+                            </div>
+                            ${s.description ? `<p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 0.85em;">${s.description}</p>` : ''}
+                        </div>
+                        <div class="setting-actions">
+                            ${valueHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function toggleVrroomSetting(key, isOn) {
+            const value = isOn ? 'on' : 'off';
+            await changeVrroomSetting(key, value);
+        }
+
+        async function changeVrroomSetting(key, value) {
+            const ip = localStorage.getItem('vrroom_ip');
+            const port = localStorage.getItem('vrroom_port') || '2222';
+
+            try {
+                const response = await fetch('/api/vrroom/set', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip: ip, port: parseInt(port), setting: key, value: value })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update local state
+                    const setting = currentVrroomSettings.find(s => s.key === key);
+                    if (setting) setting.value = value;
+                } else {
+                    alert('Failed to change setting: ' + (data.error || 'Unknown error'));
+                    refreshVrroomSettings();  // Refresh to show actual state
+                }
+            } catch (err) {
+                alert('Error changing setting: ' + err.message);
+                refreshVrroomSettings();
+            }
+        }
+
+        // =================================================================
+        // Signal Chain Update
+        // =================================================================
+        function updateSignalChainDisplay() {
+            // This function updates the signal chain visualization based on selected equipment
+            const display = document.getElementById('setup-display')?.value;
+            const processor = document.getElementById('setup-hdfury')?.value;
+            const avr = document.getElementById('setup-avr')?.value;
+            const speakers = document.getElementById('setup-speakers')?.value;
+
+            // Update video chain
+            const displayNode = document.querySelector('#signal-chain-display .signal-node.output-video');
+            if (displayNode && window.devicesData?.displays?.[display]) {
+                const dev = window.devicesData.displays[display];
+                displayNode.querySelector('.node-label').textContent = dev.name;
+                displayNode.querySelector('.node-status').textContent = dev.type || '';
+            }
+
+            const processorNode = document.querySelector('#signal-chain-display .signal-node.processor');
+            if (processorNode && window.devicesData?.hdfury_devices?.[processor]) {
+                const dev = window.devicesData.hdfury_devices[processor];
+                processorNode.querySelector('.node-label').textContent = dev.name;
+                processorNode.querySelector('.node-status').textContent = `${dev.inputs || 0}×${dev.outputs || 0}`;
+            }
+
+            // Update audio chain
+            const avrNode = document.querySelector('#audio-chain-display .signal-node.output-audio');
+            if (avrNode && window.devicesData?.avrs?.[avr]) {
+                const dev = window.devicesData.avrs[avr];
+                avrNode.querySelector('.node-label').textContent = dev.name;
+            }
+
+            const speakersNode = document.querySelectorAll('#audio-chain-display .signal-node.output-audio')[1];
+            if (speakersNode && window.devicesData?.speakers?.[speakers]) {
+                const dev = window.devicesData.speakers[speakers];
+                speakersNode.querySelector('.node-label').textContent = dev.layout || dev.name;
+            }
+        }
 
         // =================================================================
         // Config analyzer
@@ -1996,6 +2882,9 @@
         function populateSetupDropdowns(data) {
             const saved = loadSetupFromStorage();
 
+            // Store data globally for signal chain updates
+            window.devicesData = data;
+
             // Display dropdown
             if (data.displays) {
                 populateSelect('setup-display', data.displays, saved.display);
@@ -2003,7 +2892,7 @@
                 populateSelect('setup-display', data.projectors, saved.display);
             }
 
-            // HDFury Device dropdown
+            // HDMI Processor dropdown (renamed from HDFury Device)
             if (data.hdfury_devices) {
                 populateSelect('setup-hdfury', data.hdfury_devices, saved.hdfury_device);
             }
@@ -2033,6 +2922,7 @@
                         cb.addEventListener('change', function() {
                             this.closest('label').classList.toggle('checked', this.checked);
                             saveSetupToStorage();
+                            updateSignalChainDisplay();
                         });
                     });
                 }
@@ -2048,9 +2938,90 @@
                 populateSelect('setup-screen', data.screens, saved.screen);
             }
 
-            // Media Server dropdown
+            // Media Servers checkboxes (multi-select instead of dropdown)
             if (data.media_servers) {
-                populateSelect('setup-media-server', data.media_servers, saved.media_server);
+                const container = document.getElementById('setup-media-servers-checkboxes');
+                if (container) {
+                    const savedServers = saved.media_servers || [];
+                    container.innerHTML = Object.entries(data.media_servers).map(([key, server]) => {
+                        const isChecked = savedServers.includes(key);
+                        return `
+                            <label class="${isChecked ? 'checked' : ''}">
+                                <input type="checkbox" name="media_server" value="${key}" ${isChecked ? 'checked' : ''}>
+                                ${server.name}
+                            </label>
+                        `;
+                    }).join('');
+
+                    // Add change listeners
+                    container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        cb.addEventListener('change', function() {
+                            this.closest('label').classList.toggle('checked', this.checked);
+                            saveSetupToStorage();
+                        });
+                    });
+                }
+            }
+
+            // Add change listeners to dropdowns to update signal chain
+            ['setup-display', 'setup-hdfury', 'setup-avr', 'setup-speakers', 'setup-screen'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', function() {
+                        saveSetupToStorage();
+                        updateSignalChainDisplay();
+                        updateManualLinks();
+                    });
+                }
+            });
+
+            // Initial signal chain update
+            updateSignalChainDisplay();
+            updateManualLinks();
+        }
+
+        function updateManualLinks() {
+            // Show manual links when devices are selected
+            const display = document.getElementById('setup-display')?.value;
+            const processor = document.getElementById('setup-hdfury')?.value;
+            const avr = document.getElementById('setup-avr')?.value;
+
+            // Display manual
+            const displayManualDiv = document.getElementById('display-manual-link');
+            if (displayManualDiv && display) {
+                displayManualDiv.style.display = 'block';
+                // Fetch manual link if available
+                fetchManualLink(display, 'display-manual-btn');
+            }
+
+            // Processor manual
+            const processorManualDiv = document.getElementById('processor-manual-link');
+            if (processorManualDiv && processor) {
+                processorManualDiv.style.display = 'block';
+                fetchManualLink(processor, 'processor-manual-btn');
+            }
+
+            // AVR manual
+            const avrManualDiv = document.getElementById('avr-manual-link');
+            if (avrManualDiv && avr) {
+                avrManualDiv.style.display = 'block';
+                fetchManualLink(avr, 'avr-manual-btn');
+            }
+        }
+
+        async function fetchManualLink(deviceId, btnId) {
+            try {
+                const response = await fetch('/api/manuals/' + deviceId);
+                if (response.ok) {
+                    const data = await response.json();
+                    const btn = document.getElementById(btnId);
+                    if (btn && data.manual_url) {
+                        btn.href = data.manual_url;
+                        btn.style.display = 'inline-block';
+                    }
+                }
+            } catch (err) {
+                // Manual not found, hide button
             }
         }
 
@@ -2129,7 +3100,7 @@
                 sources: getSelectedSources(),
                 speakers: document.getElementById('setup-speakers').value,
                 screen: document.getElementById('setup-screen').value,
-                media_server: document.getElementById('setup-media-server').value,
+                media_servers: getSelectedMediaServers(),
                 goals: getSelectedGoals()
             };
             try {
@@ -2137,6 +3108,11 @@
             } catch (e) {
                 // localStorage may not be available
             }
+        }
+
+        function getSelectedMediaServers() {
+            const checkboxes = document.querySelectorAll('#setup-media-servers-checkboxes input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(cb => cb.value);
         }
 
         function loadSetupFromStorage() {
@@ -2156,10 +3132,7 @@
             return Array.from(checkboxes).map(cb => cb.value);
         }
 
-        // Attach save listeners to all setup dropdowns
-        ['setup-display', 'setup-hdfury', 'setup-avr', 'setup-speakers', 'setup-screen', 'setup-media-server'].forEach(id => {
-            document.getElementById(id).addEventListener('change', saveSetupToStorage);
-        });
+        // Note: Dropdown change listeners are now attached in populateSetupDropdowns
 
         // =================================================================
         // Generate Recommendations
@@ -2172,7 +3145,7 @@
                 sources: getSelectedSources(),
                 speakers: document.getElementById('setup-speakers').value,
                 screen: document.getElementById('setup-screen').value,
-                media_server: document.getElementById('setup-media-server').value,
+                media_servers: getSelectedMediaServers(),
                 goals: getSelectedGoals()
             };
 
