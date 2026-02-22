@@ -1,20 +1,24 @@
-# Vrroom Configurator
+# AV Signal Lab
 
-Web-based toolkit for analyzing and optimizing HDFury Vrroom configurations to eliminate HDMI handshake delays ("bonk") during pre-roll playback in home theater setups.
+Web-based toolkit for analyzing and optimizing home theater HDMI signal chains. Works with HDFury Vrroom, Vertex2, Diva, and other HDMI processors to eliminate HDMI handshake delays ("bonk") and ensure proper HDR/Dolby Vision passthrough.
 
 ## Problem Solved
 
-- **2-3 second black screens** during Plex/Jellyfin/Emby pre-rolls
+- **2-3 second black screens** during Plex/Jellyfin/Emby pre-rolls (the "bonk" issue)
 - **HDMI handshake delays** when video format changes
+- **HDR lost in signal chain** - diagnose where HDR is being dropped
 - **Dolby Vision on non-DV displays** via LLDV conversion
 - **Pre-roll format mismatches** causing unnecessary format switching
 
 ## Features
 
-- **My Setup** - Select your equipment and optimization goals, get tailored recommendations
+- **My Setup** - Visual signal chain builder with video/audio path separation
+- **HDR Diagnostic** - Connect to your HDMI processor and trace HDR through the chain
+- **Settings Management** - View and modify HDMI processor settings with live toggles
 - **Config Analyzer** - Upload Vrroom JSON configs, identify issues, download optimized configs
 - **Pre-roll Analyzer** - Analyze video format, get FFmpeg commands to match library content
-- **Device Database** - Pre-configured profiles for displays, AVRs, sources, and speakers
+- **Device Database** - 50+ pre-configured profiles for displays, AVRs, sources, speakers
+- **QMS/QuickSync Tracking** - Identifies devices supporting HDMI 2.1 Quick Media Switching
 - **EDID Reference** - Documentation for EDID modes and DV strings
 
 ## Quick Start

@@ -5,7 +5,7 @@ REM Change to the directory containing this script
 cd /d "%~dp0"
 
 echo ============================================================
-echo   Vrroom Configurator - HDFury Vrroom Config Analyzer
+echo   AV Signal Lab - Home Theater Signal Chain Optimizer
 echo ============================================================
 echo.
 
@@ -93,7 +93,7 @@ if !PYTHON_OK!==0 (
     echo   Python Installation Required
     echo ============================================================
     echo.
-    echo   Python 3.8+ is REQUIRED to run Vrroom Configurator.
+    echo   Python 3.8+ is REQUIRED to run AV Signal Lab.
     echo.
     call :prompt_python_install
     if !PYTHON_OK!==0 (
@@ -183,7 +183,7 @@ REM Start the server
 REM ============================================================
 echo.
 echo ============================================================
-echo   Vrroom Configurator is ready!
+echo   AV Signal Lab is ready!
 echo ============================================================
 echo.
 echo   URL: http://localhost:5000

@@ -8,7 +8,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo "============================================================"
-echo "  Vrroom Configurator - HDFury Vrroom Config Analyzer"
+echo "  AV Signal Lab - Home Theater Signal Chain Optimizer"
 echo "============================================================"
 echo
 
@@ -146,7 +146,7 @@ install_python() {
     echo "  Python Installation Required"
     echo "============================================================"
     echo
-    echo "  Python 3.8+ is REQUIRED to run Vrroom Configurator."
+    echo "  Python 3.8+ is REQUIRED to run AV Signal Lab."
     echo
 
     case $OS_TYPE in
@@ -400,7 +400,7 @@ mkdir -p uploads exports
 # ============================================================
 echo
 echo "============================================================"
-echo "  Vrroom Configurator is ready!"
+echo "  AV Signal Lab is ready!"
 echo "============================================================"
 echo
 echo "  URL: http://localhost:5000"

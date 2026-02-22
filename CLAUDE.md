@@ -1,11 +1,13 @@
-# CLAUDE.md - Vrroom Configurator Project Guide
+# CLAUDE.md - AV Signal Lab Project Guide
 
 ## Project Purpose
 
-This is an HDFury Vrroom configuration tool designed to:
+This is a home theater signal chain optimization tool designed to:
 1. **Fix/minimize "bonk" issues** - HDMI handshake delays causing 2-3 second black screens during format changes
-2. **Optimize for Dolby Vision support** on non-DV compatible devices via **LLDV (Low Latency Dolby Vision)** capability
-3. **Enable custom pre-roll visibility** - Currently the user's 6-second pre-roll shows only 1 frame with audio on Emby
+2. **Diagnose HDR signal path** - Trace where HDR/DV is being lost in the signal chain
+3. **Optimize for Dolby Vision support** on non-DV compatible devices via **LLDV (Low Latency Dolby Vision)** capability
+4. **Track QMS/QuickSync support** - Identify devices supporting HDMI 2.1 Quick Media Switching (eliminates bonk natively)
+5. **Enable custom pre-roll visibility** - Currently the user's 6-second pre-roll shows only 1 frame with audio on Emby
 
 ## Target Hardware Setup
 
