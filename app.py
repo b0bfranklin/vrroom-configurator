@@ -651,31 +651,196 @@ DEVICE_PROFILES = {
             "speakers_config": "2.0",
             "smart_platform": "Tizen",
             "config_paths": {
-                "picture_mode": "Settings > All Settings > Picture > Picture Mode",
-                "hdr_setting": "Settings > All Settings > Picture > Expert Settings > HDR Tone Mapping",
-                "game_mode": "Settings > All Settings > Connection > Game Mode Settings > Game Mode",
-                "vrr": "Settings > All Settings > Connection > Game Mode Settings > VRR",
-                "allm": "Settings > All Settings > Connection > Game Mode Settings > Auto Game Mode (ALLM)",
-                "hdmi_uhd_color": "Settings > All Settings > Connection > External Device Manager > Input Signal Plus",
-                "audio_output": "Settings > All Settings > Sound > Sound Output",
-                "earc": "Settings > All Settings > Connection > External Device Manager > HDMI eARC Mode",
+                "picture_mode": {
+                    "path": "Settings > All Settings > Picture > Picture Mode",
+                    "steps": [
+                        "Press the Settings button (gear icon) on remote",
+                        "Select 'All Settings' at bottom of Quick Settings menu",
+                        "Navigate to 'Picture' tab on left sidebar",
+                        "Select 'Picture Mode' at top of Picture settings",
+                        "Choose: Movie, Filmmaker Mode, or Dynamic"
+                    ],
+                    "tab": "Picture",
+                    "recommended": "Movie or Filmmaker Mode (for accurate colors)"
+                },
+                "hdr_tone_mapping": {
+                    "path": "Settings > All Settings > Picture > Expert Settings > HDR Tone Mapping",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Picture' tab",
+                        "Scroll down to 'Expert Settings'",
+                        "Select 'HDR Tone Mapping'",
+                        "Choose: Standard, Static, or Dynamic"
+                    ],
+                    "tab": "Picture > Expert Settings",
+                    "recommended": "Standard (most accurate to mastering)"
+                },
+                "input_signal_plus": {
+                    "path": "Settings > All Settings > Connection > External Device Manager > Input Signal Plus",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Connection' tab on left sidebar",
+                        "Select 'External Device Manager'",
+                        "Select 'Input Signal Plus'",
+                        "Enable for each HDMI port you use (HDMI 1, 2, 3, 4)",
+                        "This enables 4K@120Hz, HDR10, HDR10+, and VRR"
+                    ],
+                    "tab": "Connection > External Device Manager",
+                    "recommended": "On for all HDMI ports with 4K sources",
+                    "critical": True
+                },
+                "game_mode": {
+                    "path": "Settings > All Settings > Connection > Game Mode Settings > Game Mode",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Connection' tab",
+                        "Select 'Game Mode Settings'",
+                        "Toggle 'Game Mode' On or Off",
+                        "Or set to 'Auto' to use ALLM detection"
+                    ],
+                    "tab": "Connection > Game Mode Settings",
+                    "recommended": "Auto (uses ALLM from gaming sources)"
+                },
+                "vrr": {
+                    "path": "Settings > All Settings > Connection > Game Mode Settings > VRR",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Connection' tab",
+                        "Select 'Game Mode Settings'",
+                        "Toggle 'VRR' On",
+                        "Supports FreeSync Premium Pro up to 144Hz"
+                    ],
+                    "tab": "Connection > Game Mode Settings",
+                    "recommended": "On"
+                },
+                "allm": {
+                    "path": "Settings > All Settings > Connection > Game Mode Settings > Auto Game Mode (ALLM)",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Connection' tab",
+                        "Select 'Game Mode Settings'",
+                        "Toggle 'Auto Game Mode' On",
+                        "TV will auto-switch to Game Mode when console sends ALLM signal"
+                    ],
+                    "tab": "Connection > Game Mode Settings",
+                    "recommended": "On"
+                },
+                "sound_output": {
+                    "path": "Settings > All Settings > Sound > Sound Output",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Sound' tab on left sidebar",
+                        "Select 'Sound Output' at top",
+                        "Choose: TV Speaker, Soundbar, Receiver, or Bluetooth"
+                    ],
+                    "tab": "Sound",
+                    "recommended": "TV Speaker (for standalone setup)"
+                },
+                "sound_mode": {
+                    "path": "Settings > All Settings > Sound > Sound Mode",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Sound' tab",
+                        "Select 'Sound Mode'",
+                        "Choose: Standard, Adaptive Sound, Amplify, or Custom"
+                    ],
+                    "tab": "Sound",
+                    "recommended": "Adaptive Sound (auto-adjusts to content)"
+                },
+                "earc": {
+                    "path": "Settings > All Settings > Connection > External Device Manager > HDMI eARC Mode",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Connection' tab",
+                        "Select 'External Device Manager'",
+                        "Select 'HDMI eARC Mode'",
+                        "Set to 'Auto' to enable eARC when soundbar/AVR connected"
+                    ],
+                    "tab": "Connection > External Device Manager",
+                    "recommended": "Auto"
+                },
+                "picture_clarity": {
+                    "path": "Settings > All Settings > Picture > Expert Settings > Picture Clarity Settings",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Picture' tab",
+                        "Scroll to 'Expert Settings'",
+                        "Select 'Picture Clarity Settings'",
+                        "Adjust Blur Reduction and Judder Reduction"
+                    ],
+                    "tab": "Picture > Expert Settings",
+                    "recommended": "Blur Reduction: Off, Judder Reduction: Off (for cinema)"
+                },
+                "local_dimming": {
+                    "path": "Settings > All Settings > Picture > Expert Settings > Local Dimming",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Picture' tab",
+                        "Scroll to 'Expert Settings'",
+                        "Select 'Local Dimming'",
+                        "Choose: High, Standard, or Low"
+                    ],
+                    "tab": "Picture > Expert Settings",
+                    "recommended": "High (for best HDR contrast)"
+                }
             },
             "recommended_settings": {
                 "picture_mode_sdr": "Movie or Filmmaker Mode",
                 "picture_mode_hdr": "HDR Movie or Filmmaker Mode",
-                "game_mode": "On (for gaming sources)",
-                "input_signal_plus": "On (required for 4K HDR)",
+                "game_mode": "Auto (for automatic ALLM detection)",
+                "input_signal_plus": "On (REQUIRED for 4K HDR/VRR - enable per HDMI port)",
                 "vrr": "On",
-                "auto_game_mode": "On",
+                "allm": "On",
                 "hdr_tone_mapping": "Standard",
+                "local_dimming": "High",
+                "blur_reduction": "Off",
+                "judder_reduction": "Off (for 24p film content)"
             },
             "standalone_settings": {
                 "sound_output": "TV Speaker",
-                "sound_mode": "Adaptive Sound or Standard",
-                "equalizer": "Custom (adjust to taste)",
-                "auto_volume": "On",
+                "sound_mode": "Adaptive Sound (auto-adjusts to content type)",
+                "equalizer": "Custom: Boost bass +2, Treble 0",
+                "auto_volume": "On (normalizes volume between apps)",
+                "dialogue_clarity": "On (if available)",
+                "night_mode": "On (for late viewing - compresses dynamics)"
             },
-            "notes": "No Dolby Vision support - Samsung uses HDR10+. Enable Input Signal Plus for full 4K HDR. VRR up to 4K@144Hz."
+            "media_server_settings": {
+                "plex": {
+                    "quality": "Maximum (for direct play)",
+                    "direct_play": "Enabled",
+                    "allow_insecure": "Same network only",
+                    "subtitles": "Burn-in if needed (avoids transcoding)"
+                },
+                "emby": {
+                    "playback_quality": "Direct play preferred",
+                    "max_streaming_bitrate": "No limit",
+                    "enable_hdr": "On"
+                },
+                "jellyfin": {
+                    "playback_quality": "Auto",
+                    "prefer_direct_play": "On",
+                    "enable_hdr": "On"
+                }
+            },
+            "notes": "No Dolby Vision support - Samsung uses HDR10+. Enable Input Signal Plus for full 4K HDR (this is CRITICAL - TV won't display HDR without it). VRR up to 4K@144Hz with FreeSync Premium Pro. For Plex/Emby/Jellyfin: ensure Direct Play is enabled to avoid transcoding.",
+            "first_time_setup": [
+                "1. Enable Input Signal Plus for each HDMI port (Connection > External Device Manager)",
+                "2. Set Picture Mode to Movie or Filmmaker Mode",
+                "3. Enable Game Mode settings (VRR, ALLM) if using gaming sources",
+                "4. For standalone audio: Set Sound Mode to Adaptive Sound",
+                "5. Install Plex/Emby/Jellyfin from Samsung App Store",
+                "6. Configure media server app for Direct Play (no transcoding)"
+            ]
         },
         "samsung_qn95c": {
             "name": "Samsung QN95C Neo QLED",
@@ -1056,16 +1221,140 @@ DEVICE_PROFILES = {
             "room_correction_mic": "YPAO microphone (included)",
             "dirac_support": False,
             "config_paths": {
-                "speaker_setup": "Setup > Speaker > Manual Setup > Configuration",
-                "crossover": "Setup > Speaker > Manual Setup > Crossover",
-                "distance": "Setup > Speaker > Manual Setup > Distance",
-                "level": "Setup > Speaker > Manual Setup > Level",
-                "room_correction": "Setup > Speaker > YPAO",
-                "surround_decode": "Sound > Surround Decoder",
-                "hdmi_audio": "Setup > HDMI > Audio Output",
-                "earc": "Setup > HDMI > HDMI Control > ARC",
+                "speaker_setup": {
+                    "path": "Setup > Speaker > Manual Setup > Configuration",
+                    "steps": [
+                        "Press SETUP button on remote or front panel",
+                        "Navigate to 'Speaker' using arrow keys",
+                        "Select 'Manual Setup'",
+                        "Select 'Configuration'",
+                        "Set each speaker position: Front L/R, Center, Surround L/R, etc.",
+                        "Options: Large, Small, or None for each position"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "Speaker > Manual Setup",
+                    "recommended": "Set based on speaker size - Small for bookshelf, Large for floorstanders"
+                },
+                "crossover": {
+                    "path": "Setup > Speaker > Manual Setup > Crossover",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'Speaker' > 'Manual Setup'",
+                        "Select 'Crossover'",
+                        "Set crossover frequency for each speaker set to 'Small'",
+                        "Options: 40Hz, 60Hz, 80Hz, 90Hz, 100Hz, 110Hz, 120Hz, 150Hz, 200Hz"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "Speaker > Manual Setup",
+                    "recommended": "80Hz for most bookshelf speakers, 60Hz for larger speakers"
+                },
+                "distance": {
+                    "path": "Setup > Speaker > Manual Setup > Distance",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'Speaker' > 'Manual Setup'",
+                        "Select 'Distance'",
+                        "Measure distance from each speaker to listening position",
+                        "Enter distance for each speaker (in feet or meters)",
+                        "Use a tape measure for accuracy"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "Speaker > Manual Setup",
+                    "recommended": "Measure accurately - this affects time alignment"
+                },
+                "level": {
+                    "path": "Setup > Speaker > Manual Setup > Level",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'Speaker' > 'Manual Setup'",
+                        "Select 'Level'",
+                        "Use test tones and SPL meter",
+                        "Adjust each speaker to same level (75dB reference)",
+                        "Range: -10.0dB to +10.0dB in 0.5dB steps"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "Speaker > Manual Setup",
+                    "recommended": "Use SPL meter app, aim for 75dB at listening position"
+                },
+                "ypao": {
+                    "path": "Setup > Speaker > YPAO",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'Speaker'",
+                        "Select 'YPAO'",
+                        "Connect YPAO microphone to front panel YPAO jack",
+                        "Place microphone at ear height at listening position",
+                        "Select 'Start' and leave the room",
+                        "Wait for measurement to complete (several minutes)",
+                        "Review and save results"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "Speaker",
+                    "recommended": "Run YPAO for automatic room correction. See Speaker Tuning guide."
+                },
+                "surround_decode": {
+                    "path": "Sound > Surround Decoder",
+                    "steps": [
+                        "Press SOUND button on remote",
+                        "Navigate to 'Surround Decoder'",
+                        "Select decoder mode for stereo content",
+                        "Options: DTS Neural:X, Dolby Surround, CINEMA DSP, etc."
+                    ],
+                    "menu_button": "SOUND",
+                    "tab": "Surround Decoder",
+                    "recommended": "DTS Neural:X or Dolby Surround for upmixing stereo to surround"
+                },
+                "hdmi_audio": {
+                    "path": "Setup > HDMI > Audio Output",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'HDMI'",
+                        "Select 'Audio Output'",
+                        "Options: Amp (receiver speakers), TV (TV speakers), or TV+Amp (both)"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "HDMI",
+                    "recommended": "Amp (processes audio through receiver)"
+                },
+                "earc": {
+                    "path": "Setup > HDMI > HDMI Control > ARC",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'HDMI'",
+                        "Select 'HDMI Control'",
+                        "Enable 'HDMI Control' first",
+                        "Set 'ARC' to On",
+                        "Connect TV to HDMI OUT (ARC) port on receiver",
+                        "Enable eARC/ARC on TV as well"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "HDMI > HDMI Control",
+                    "recommended": "On - enables eARC for lossless audio from TV apps"
+                },
+                "4k_passthrough": {
+                    "path": "Setup > HDMI > 4K Signal Format",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'HDMI'",
+                        "Select '4K Signal Format'",
+                        "Set to 'Mode 1' for 4K/60Hz 4:4:4 and 4K/120Hz",
+                        "Or 'Mode 2' for maximum compatibility"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "HDMI",
+                    "recommended": "Mode 1 (8K/4K 120Hz) for full HDMI 2.1 features"
+                }
             },
-            "notes": "Good HDMI 2.1 passthrough. Use eARC for best audio. YPAO room correction included."
+            "recommended_settings": {
+                "speaker_config": "Set based on actual speakers (Small with crossover for most)",
+                "crossover": "80Hz for bookshelf, 60Hz for floorstanders",
+                "ypao": "Run YPAO automatic calibration",
+                "4k_signal_format": "Mode 1 (for 4K@120Hz, VRR)",
+                "hdmi_control": "On (enables CEC/ARC)",
+                "arc": "On (for TV audio return)",
+                "audio_output": "Amp"
+            },
+            "notes": "Good HDMI 2.1 passthrough. Use eARC for best audio from TV apps. YPAO room correction included - run after speaker setup."
         },
         "yamaha_rx_a6a": {
             "name": "Yamaha RX-A6A",
