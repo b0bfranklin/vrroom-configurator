@@ -830,6 +830,7 @@
             <button class="tab" data-tab="analyzer">Config Analyzer</button>
             <button class="tab" data-tab="preroll">Pre-roll Analyzer</button>
             <button class="tab" data-tab="devices">Device Database</button>
+            <button class="tab" data-tab="speaker-tuning">Speaker Tuning</button>
             <button class="tab" data-tab="edid">EDID Reference</button>
         </div>
 
@@ -1227,6 +1228,165 @@
             <div class="card">
                 <h2>Media Servers</h2>
                 <div class="device-grid" id="media-servers-grid"></div>
+            </div>
+
+            <!-- Custom Device Form -->
+            <div class="card">
+                <h2>Add Custom Device</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                    Add your own devices to the database. Devices are saved locally and persist across sessions.
+                </p>
+                <div class="custom-device-form">
+                    <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label for="custom-device-category">Category</label>
+                            <select id="custom-device-category">
+                                <option value="displays">Display (TV/Projector)</option>
+                                <option value="avrs">AV Receiver</option>
+                                <option value="sources">Source Device</option>
+                                <option value="hdfury_devices">HDMI Processor</option>
+                                <option value="speakers">Speakers</option>
+                                <option value="screens">Projector Screen</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="custom-device-type">Device Type</label>
+                            <select id="custom-device-type">
+                                <option value="tv">TV</option>
+                                <option value="projector">Projector</option>
+                                <option value="avr">AV Receiver</option>
+                                <option value="source">Media Player</option>
+                                <option value="console">Gaming Console</option>
+                                <option value="hdfury">HDMI Processor</option>
+                                <option value="speaker">Speaker Setup</option>
+                                <option value="screen">Projector Screen</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="custom-device-name">Device Name</label>
+                        <input type="text" id="custom-device-name" placeholder="e.g., Sony A95K 65&quot;">
+                    </div>
+                    <div class="form-group">
+                        <label for="custom-device-url">Product URL (optional - auto-extracts specs)</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="url" id="custom-device-url" placeholder="https://www.manufacturer.com/product-page" style="flex: 1;">
+                            <button class="btn btn-secondary" onclick="fetchDeviceSpecs()">Fetch Specs</button>
+                        </div>
+                    </div>
+                    <div id="fetched-specs" style="display: none; margin-bottom: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 6px;">
+                        <strong style="color: var(--accent-green);">Auto-extracted specs:</strong>
+                        <pre id="fetched-specs-display" style="margin-top: 8px; font-size: 0.9em; white-space: pre-wrap;"></pre>
+                    </div>
+                    <div class="form-group">
+                        <label>Manual Specs (optional)</label>
+                        <div class="specs-inputs" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+                            <div>
+                                <label style="font-size: 0.85em;">Max Resolution</label>
+                                <select id="custom-spec-resolution">
+                                    <option value="">--</option>
+                                    <option value="8K">8K</option>
+                                    <option value="4K">4K</option>
+                                    <option value="1440p">1440p</option>
+                                    <option value="1080p">1080p</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85em;">Max Refresh Rate</label>
+                                <select id="custom-spec-refresh">
+                                    <option value="">--</option>
+                                    <option value="144">144Hz</option>
+                                    <option value="120">120Hz</option>
+                                    <option value="60">60Hz</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85em;">VRR Support</label>
+                                <select id="custom-spec-vrr">
+                                    <option value="">--</option>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85em;">Native Dolby Vision</label>
+                                <select id="custom-spec-dv">
+                                    <option value="">--</option>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85em;">HDR10+</label>
+                                <select id="custom-spec-hdr10plus">
+                                    <option value="">--</option>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="font-size: 0.85em;">eARC</label>
+                                <select id="custom-spec-earc">
+                                    <option value="">--</option>
+                                    <option value="true">Yes</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="custom-device-notes">Notes</label>
+                        <textarea id="custom-device-notes" placeholder="Any additional information..." rows="2" style="width: 100%; padding: 8px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);"></textarea>
+                    </div>
+                    <button class="btn" onclick="addCustomDevice()">Add Device</button>
+                    <div id="custom-device-result" style="margin-top: 12px;"></div>
+                </div>
+            </div>
+
+            <!-- Custom Devices List -->
+            <div class="card" id="custom-devices-card" style="display: none;">
+                <h2>Your Custom Devices</h2>
+                <div class="device-grid" id="custom-devices-grid"></div>
+            </div>
+        </div>
+
+        <!-- Speaker Tuning Tab -->
+        <div id="speaker-tuning" class="tab-content">
+            <div class="card">
+                <h2>Speaker Tuning Guides</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Step-by-step guides for setting up and calibrating your speaker system. Select your receiver's room correction system below.
+                </p>
+                <div class="form-group">
+                    <label for="tuning-guide-select">Select Room Correction System</label>
+                    <select id="tuning-guide-select" onchange="displayTuningGuide(this.value)">
+                        <option value="">-- Select System --</option>
+                        <option value="yamaha_ypao">Yamaha YPAO</option>
+                        <option value="audyssey">Audyssey MultEQ (Denon/Marantz)</option>
+                        <option value="dirac_live">Dirac Live</option>
+                        <option value="arc_genesis">Anthem ARC Genesis</option>
+                        <option value="manual_speaker_setup">Manual Setup (No Room Correction)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="tuning-guide-content" style="display: none;">
+                <div class="card">
+                    <h2 id="tuning-guide-title"></h2>
+                    <p id="tuning-guide-description" style="color: var(--text-secondary); margin-bottom: 20px;"></p>
+
+                    <h3 style="margin-bottom: 12px;">Equipment Needed</h3>
+                    <ul id="tuning-equipment-list" style="margin-bottom: 20px; padding-left: 24px;"></ul>
+
+                    <h3 style="margin-bottom: 12px;">Step-by-Step Instructions</h3>
+                    <div id="tuning-steps-container"></div>
+                </div>
+
+                <div class="card" id="tuning-tips-card">
+                    <h2>Tips & Common Issues</h2>
+                    <div id="tuning-issues-container" style="margin-bottom: 16px;"></div>
+                    <div id="tuning-tips-container"></div>
+                </div>
             </div>
         </div>
 
@@ -2487,11 +2647,269 @@
         }
 
         // =================================================================
+        // Custom Device Functions
+        // =================================================================
+        async function fetchDeviceSpecs() {
+            const urlInput = document.getElementById('custom-device-url');
+            const url = urlInput.value.trim();
+            const fetchedDiv = document.getElementById('fetched-specs');
+            const displayPre = document.getElementById('fetched-specs-display');
+
+            if (!url) {
+                alert('Please enter a product URL first.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/devices/fetch-specs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    fetchedDiv.style.display = 'block';
+                    displayPre.textContent = JSON.stringify(data.specs, null, 2);
+
+                    // Auto-fill form fields
+                    if (data.specs.max_resolution) {
+                        document.getElementById('custom-spec-resolution').value = data.specs.max_resolution;
+                    }
+                    if (data.specs.max_refresh) {
+                        document.getElementById('custom-spec-refresh').value = data.specs.max_refresh.toString();
+                    }
+                    if (data.specs.vrr_support !== undefined) {
+                        document.getElementById('custom-spec-vrr').value = data.specs.vrr_support.toString();
+                    }
+                    if (data.specs.hdr_support && data.specs.hdr_support.includes('Dolby Vision')) {
+                        document.getElementById('custom-spec-dv').value = 'true';
+                    }
+                    if (data.specs.hdr_support && data.specs.hdr_support.includes('HDR10+')) {
+                        document.getElementById('custom-spec-hdr10plus').value = 'true';
+                    }
+                    if (data.specs.earc_support !== undefined) {
+                        document.getElementById('custom-spec-earc').value = data.specs.earc_support.toString();
+                    }
+                } else {
+                    alert('Failed to fetch specs: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Error fetching specs: ' + err.message);
+            }
+        }
+
+        async function addCustomDevice() {
+            const category = document.getElementById('custom-device-category').value;
+            const deviceType = document.getElementById('custom-device-type').value;
+            const name = document.getElementById('custom-device-name').value.trim();
+            const url = document.getElementById('custom-device-url').value.trim();
+            const notes = document.getElementById('custom-device-notes').value.trim();
+            const resultDiv = document.getElementById('custom-device-result');
+
+            if (!name) {
+                alert('Please enter a device name.');
+                return;
+            }
+
+            // Generate device ID from name
+            const deviceId = name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_');
+
+            // Build specs object
+            const specs = {};
+            const resolution = document.getElementById('custom-spec-resolution').value;
+            const refresh = document.getElementById('custom-spec-refresh').value;
+            const vrr = document.getElementById('custom-spec-vrr').value;
+            const dv = document.getElementById('custom-spec-dv').value;
+            const hdr10plus = document.getElementById('custom-spec-hdr10plus').value;
+            const earc = document.getElementById('custom-spec-earc').value;
+
+            if (resolution) specs.max_resolution = resolution;
+            if (refresh) specs.max_refresh = parseInt(refresh);
+            if (vrr) specs.vrr_support = vrr === 'true';
+            if (dv) specs.native_dv = dv === 'true';
+            if (hdr10plus) specs.hdr10plus_support = hdr10plus === 'true';
+            if (earc) specs.earc_support = earc === 'true';
+            if (notes) specs.notes = notes;
+
+            try {
+                const response = await fetch('/api/devices/custom', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        category: category,
+                        device_id: deviceId,
+                        name: name,
+                        device_type: deviceType,
+                        specs: specs,
+                        source_url: url || null
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = '<span style="color: var(--accent-green);">Device added successfully!</span>';
+                    // Clear form
+                    document.getElementById('custom-device-name').value = '';
+                    document.getElementById('custom-device-url').value = '';
+                    document.getElementById('custom-device-notes').value = '';
+                    document.getElementById('fetched-specs').style.display = 'none';
+                    // Reload devices
+                    loadDevices();
+                    loadCustomDevices();
+                } else {
+                    resultDiv.innerHTML = '<span style="color: var(--accent-red);">Error: ' + (data.error || 'Unknown error') + '</span>';
+                }
+            } catch (err) {
+                resultDiv.innerHTML = '<span style="color: var(--accent-red);">Error: ' + err.message + '</span>';
+            }
+        }
+
+        async function loadCustomDevices() {
+            try {
+                const response = await fetch('/api/devices/custom');
+                const data = await response.json();
+
+                const customCard = document.getElementById('custom-devices-card');
+                const customGrid = document.getElementById('custom-devices-grid');
+
+                // Check if any custom devices exist
+                let hasDevices = false;
+                for (const category in data) {
+                    if (Object.keys(data[category]).length > 0) {
+                        hasDevices = true;
+                        break;
+                    }
+                }
+
+                if (hasDevices) {
+                    customCard.style.display = 'block';
+                    let html = '';
+                    for (const category in data) {
+                        for (const deviceId in data[category]) {
+                            const device = data[category][deviceId];
+                            html += `
+                                <div class="device-card">
+                                    <h4>${device.name}</h4>
+                                    <div class="device-type">${device.type} (${category})</div>
+                                    <dl class="device-specs">
+                                        ${device.max_resolution ? `<dt>Max Resolution</dt><dd>${device.max_resolution}</dd>` : ''}
+                                        ${device.max_refresh ? `<dt>Max Refresh</dt><dd>${device.max_refresh}Hz</dd>` : ''}
+                                        ${device.vrr_support !== undefined ? `<dt>VRR</dt><dd>${device.vrr_support ? 'Yes' : 'No'}</dd>` : ''}
+                                        ${device.native_dv !== undefined ? `<dt>Native DV</dt><dd>${device.native_dv ? 'Yes' : 'No'}</dd>` : ''}
+                                    </dl>
+                                    ${device.notes ? `<div class="device-notes">${device.notes}</div>` : ''}
+                                    <button class="btn btn-secondary" onclick="deleteCustomDevice('${deviceId}')" style="margin-top: 8px; font-size: 0.85em;">Delete</button>
+                                </div>
+                            `;
+                        }
+                    }
+                    customGrid.innerHTML = html;
+                } else {
+                    customCard.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Error loading custom devices:', err);
+            }
+        }
+
+        async function deleteCustomDevice(deviceId) {
+            if (!confirm('Delete this custom device?')) return;
+
+            try {
+                const response = await fetch(`/api/devices/custom/${deviceId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    loadDevices();
+                    loadCustomDevices();
+                } else {
+                    alert('Error deleting device: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        // =================================================================
+        // Speaker Tuning Guide Functions
+        // =================================================================
+        async function displayTuningGuide(guideId) {
+            const contentDiv = document.getElementById('tuning-guide-content');
+
+            if (!guideId) {
+                contentDiv.style.display = 'none';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/speaker-tuning/${guideId}`);
+                const guide = await response.json();
+
+                if (guide.error) {
+                    alert('Guide not found');
+                    return;
+                }
+
+                // Title and description
+                document.getElementById('tuning-guide-title').textContent = guide.name;
+                document.getElementById('tuning-guide-description').textContent = guide.description;
+
+                // Equipment list
+                const equipmentList = document.getElementById('tuning-equipment-list');
+                equipmentList.innerHTML = guide.equipment_needed.map(item => `<li>${item}</li>`).join('');
+
+                // Steps
+                const stepsContainer = document.getElementById('tuning-steps-container');
+                stepsContainer.innerHTML = guide.steps.map(step => `
+                    <div style="margin-bottom: 20px; padding: 16px; background: var(--bg-tertiary); border-radius: 8px; border-left: 4px solid var(--accent-blue);">
+                        <h4 style="color: var(--accent-blue); margin-bottom: 8px;">Step ${step.step}: ${step.title}</h4>
+                        <ul style="padding-left: 20px;">
+                            ${step.instructions.map(inst => `<li style="margin-bottom: 4px;">${inst}</li>`).join('')}
+                        </ul>
+                    </div>
+                `).join('');
+
+                // Common issues
+                const issuesContainer = document.getElementById('tuning-issues-container');
+                if (guide.common_issues) {
+                    issuesContainer.innerHTML = '<h3 style="margin-bottom: 12px;">Common Issues & Solutions</h3>';
+                    issuesContainer.innerHTML += Object.entries(guide.common_issues).map(([issue, solution]) => `
+                        <div style="margin-bottom: 12px; padding: 12px; background: var(--bg-tertiary); border-radius: 6px;">
+                            <strong style="color: var(--accent-yellow);">${issue}</strong>
+                            <p style="margin-top: 4px; color: var(--text-secondary);">${solution}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    issuesContainer.innerHTML = '';
+                }
+
+                // Tips
+                const tipsContainer = document.getElementById('tuning-tips-container');
+                if (guide.tips) {
+                    tipsContainer.innerHTML = '<h3 style="margin-bottom: 12px;">Pro Tips</h3>';
+                    tipsContainer.innerHTML += '<ul style="padding-left: 20px;">';
+                    tipsContainer.innerHTML += guide.tips.map(tip => `<li style="margin-bottom: 6px;">${tip}</li>`).join('');
+                    tipsContainer.innerHTML += '</ul>';
+                } else {
+                    tipsContainer.innerHTML = '';
+                }
+
+                contentDiv.style.display = 'block';
+            } catch (err) {
+                alert('Error loading guide: ' + err.message);
+            }
+        }
+
+        // =================================================================
         // Initialize
         // =================================================================
         loadDevices();
         loadGoals();
         loadEdidPresets();
+        loadCustomDevices();
     </script>
 </body>
 </html>

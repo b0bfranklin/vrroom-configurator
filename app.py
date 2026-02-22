@@ -8,23 +8,141 @@ import copy
 import json
 import os
 import platform
+import re
 import socket
+import sqlite3
 import subprocess
 import shutil
 import uuid
 from datetime import datetime
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template, send_file, g
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload
 app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
 app.config['EXPORT_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'exports')
 app.config['BACKUP_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backups')
+app.config['DATABASE'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vrroom_devices.db')
 
 # Ensure directories exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['EXPORT_FOLDER'], exist_ok=True)
 os.makedirs(app.config['BACKUP_FOLDER'], exist_ok=True)
+
+
+# =============================================================================
+# SQLite Database for Custom Devices
+# =============================================================================
+
+def get_db():
+    """Get database connection for current request."""
+    if 'db' not in g:
+        g.db = sqlite3.connect(app.config['DATABASE'])
+        g.db.row_factory = sqlite3.Row
+    return g.db
+
+
+@app.teardown_appcontext
+def close_db(exception):
+    """Close database connection at end of request."""
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+
+
+def init_db():
+    """Initialize database schema."""
+    db = sqlite3.connect(app.config['DATABASE'])
+    db.executescript('''
+        CREATE TABLE IF NOT EXISTS custom_devices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            category TEXT NOT NULL,
+            device_id TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            device_type TEXT NOT NULL,
+            specs JSON NOT NULL,
+            source_url TEXT,
+            user_added INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS community_devices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            category TEXT NOT NULL,
+            device_id TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            device_type TEXT NOT NULL,
+            specs JSON NOT NULL,
+            source_url TEXT,
+            submitted_by TEXT,
+            approved INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_custom_category ON custom_devices(category);
+        CREATE INDEX IF NOT EXISTS idx_custom_device_id ON custom_devices(device_id);
+        CREATE INDEX IF NOT EXISTS idx_community_category ON community_devices(category);
+    ''')
+    db.commit()
+    db.close()
+
+
+# Initialize database on startup
+with app.app_context():
+    init_db()
+
+
+def get_custom_devices():
+    """Get all custom devices from database."""
+    db = get_db()
+    devices = db.execute('SELECT * FROM custom_devices ORDER BY category, name').fetchall()
+    result = {}
+    for device in devices:
+        category = device['category']
+        if category not in result:
+            result[category] = {}
+        specs = json.loads(device['specs'])
+        specs['name'] = device['name']
+        specs['type'] = device['device_type']
+        specs['user_added'] = True
+        specs['source_url'] = device['source_url']
+        result[category][device['device_id']] = specs
+    return result
+
+
+def add_custom_device(category, device_id, name, device_type, specs, source_url=None):
+    """Add a custom device to the database."""
+    db = get_db()
+    try:
+        db.execute('''
+            INSERT INTO custom_devices (category, device_id, name, device_type, specs, source_url)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (category, device_id, name, device_type, json.dumps(specs), source_url))
+        db.commit()
+        return {"success": True, "device_id": device_id}
+    except sqlite3.IntegrityError:
+        return {"success": False, "error": "Device ID already exists"}
+
+
+def update_custom_device(device_id, specs, source_url=None):
+    """Update an existing custom device."""
+    db = get_db()
+    db.execute('''
+        UPDATE custom_devices
+        SET specs = ?, source_url = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE device_id = ?
+    ''', (json.dumps(specs), source_url, device_id))
+    db.commit()
+    return {"success": True}
+
+
+def delete_custom_device(device_id):
+    """Delete a custom device from the database."""
+    db = get_db()
+    db.execute('DELETE FROM custom_devices WHERE device_id = ?', (device_id,))
+    db.commit()
+    return {"success": True}
 
 
 # =============================================================================
@@ -509,6 +627,427 @@ DEVICE_PROFILES = {
             "vrr_support": True,
             "allm_support": True,
             "notes": "Native DV with excellent QD-OLED HDR."
+        },
+        # Samsung TVs
+        "samsung_qn70f_75": {
+            "name": "Samsung 75\" Neo QLED QN70F (QA75QN70FAWXXY)",
+            "type": "tv",
+            "native_dv": False,
+            "lldv_compatible": False,
+            "max_resolution": "4K",
+            "max_refresh": 144,
+            "hdr_support": ["HDR10", "HDR10+", "HLG"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 1500,
+            "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
+            "freesync": "FreeSync Premium Pro",
+            "earc_support": True,
+            "hdmi_ports": 4,
+            "panel_tech": "Neo QLED Mini LED",
+            "processor": "NQ4 AI Gen2",
+            "speakers_watts": 20,
+            "speakers_config": "2.0",
+            "smart_platform": "Tizen",
+            "config_paths": {
+                "picture_mode": {
+                    "path": "Settings > All Settings > Picture > Picture Mode",
+                    "steps": [
+                        "Press the Settings button (gear icon) on remote",
+                        "Select 'All Settings' at bottom of Quick Settings menu",
+                        "Navigate to 'Picture' tab on left sidebar",
+                        "Select 'Picture Mode' at top of Picture settings",
+                        "Choose: Movie, Filmmaker Mode, or Dynamic"
+                    ],
+                    "tab": "Picture",
+                    "recommended": "Movie or Filmmaker Mode (for accurate colors)"
+                },
+                "hdr_tone_mapping": {
+                    "path": "Settings > All Settings > Picture > Expert Settings > HDR Tone Mapping",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Picture' tab",
+                        "Scroll down to 'Expert Settings'",
+                        "Select 'HDR Tone Mapping'",
+                        "Choose: Standard, Static, or Dynamic"
+                    ],
+                    "tab": "Picture > Expert Settings",
+                    "recommended": "Standard (most accurate to mastering)"
+                },
+                "input_signal_plus": {
+                    "path": "Settings > All Settings > Connection > External Device Manager > Input Signal Plus",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Connection' tab on left sidebar",
+                        "Select 'External Device Manager'",
+                        "Select 'Input Signal Plus'",
+                        "Enable for each HDMI port you use (HDMI 1, 2, 3, 4)",
+                        "This enables 4K@120Hz, HDR10, HDR10+, and VRR"
+                    ],
+                    "tab": "Connection > External Device Manager",
+                    "recommended": "On for all HDMI ports with 4K sources",
+                    "critical": True
+                },
+                "game_mode": {
+                    "path": "Settings > All Settings > Connection > Game Mode Settings > Game Mode",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Connection' tab",
+                        "Select 'Game Mode Settings'",
+                        "Toggle 'Game Mode' On or Off",
+                        "Or set to 'Auto' to use ALLM detection"
+                    ],
+                    "tab": "Connection > Game Mode Settings",
+                    "recommended": "Auto (uses ALLM from gaming sources)"
+                },
+                "vrr": {
+                    "path": "Settings > All Settings > Connection > Game Mode Settings > VRR",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Connection' tab",
+                        "Select 'Game Mode Settings'",
+                        "Toggle 'VRR' On",
+                        "Supports FreeSync Premium Pro up to 144Hz"
+                    ],
+                    "tab": "Connection > Game Mode Settings",
+                    "recommended": "On"
+                },
+                "allm": {
+                    "path": "Settings > All Settings > Connection > Game Mode Settings > Auto Game Mode (ALLM)",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Connection' tab",
+                        "Select 'Game Mode Settings'",
+                        "Toggle 'Auto Game Mode' On",
+                        "TV will auto-switch to Game Mode when console sends ALLM signal"
+                    ],
+                    "tab": "Connection > Game Mode Settings",
+                    "recommended": "On"
+                },
+                "sound_output": {
+                    "path": "Settings > All Settings > Sound > Sound Output",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Sound' tab on left sidebar",
+                        "Select 'Sound Output' at top",
+                        "Choose: TV Speaker, Soundbar, Receiver, or Bluetooth"
+                    ],
+                    "tab": "Sound",
+                    "recommended": "TV Speaker (for standalone setup)"
+                },
+                "sound_mode": {
+                    "path": "Settings > All Settings > Sound > Sound Mode",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Sound' tab",
+                        "Select 'Sound Mode'",
+                        "Choose: Standard, Adaptive Sound, Amplify, or Custom"
+                    ],
+                    "tab": "Sound",
+                    "recommended": "Adaptive Sound (auto-adjusts to content)"
+                },
+                "earc": {
+                    "path": "Settings > All Settings > Connection > External Device Manager > HDMI eARC Mode",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Connection' tab",
+                        "Select 'External Device Manager'",
+                        "Select 'HDMI eARC Mode'",
+                        "Set to 'Auto' to enable eARC when soundbar/AVR connected"
+                    ],
+                    "tab": "Connection > External Device Manager",
+                    "recommended": "Auto"
+                },
+                "picture_clarity": {
+                    "path": "Settings > All Settings > Picture > Expert Settings > Picture Clarity Settings",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Picture' tab",
+                        "Scroll to 'Expert Settings'",
+                        "Select 'Picture Clarity Settings'",
+                        "Adjust Blur Reduction and Judder Reduction"
+                    ],
+                    "tab": "Picture > Expert Settings",
+                    "recommended": "Blur Reduction: Off, Judder Reduction: Off (for cinema)"
+                },
+                "local_dimming": {
+                    "path": "Settings > All Settings > Picture > Expert Settings > Local Dimming",
+                    "steps": [
+                        "Press Settings button on remote",
+                        "Select 'All Settings'",
+                        "Go to 'Picture' tab",
+                        "Scroll to 'Expert Settings'",
+                        "Select 'Local Dimming'",
+                        "Choose: High, Standard, or Low"
+                    ],
+                    "tab": "Picture > Expert Settings",
+                    "recommended": "High (for best HDR contrast)"
+                }
+            },
+            "recommended_settings": {
+                "picture_mode_sdr": "Movie or Filmmaker Mode",
+                "picture_mode_hdr": "HDR Movie or Filmmaker Mode",
+                "game_mode": "Auto (for automatic ALLM detection)",
+                "input_signal_plus": "On (REQUIRED for 4K HDR/VRR - enable per HDMI port)",
+                "vrr": "On",
+                "allm": "On",
+                "hdr_tone_mapping": "Standard",
+                "local_dimming": "High",
+                "blur_reduction": "Off",
+                "judder_reduction": "Off (for 24p film content)"
+            },
+            "standalone_settings": {
+                "sound_output": "TV Speaker",
+                "sound_mode": "Adaptive Sound (auto-adjusts to content type)",
+                "equalizer": "Custom: Boost bass +2, Treble 0",
+                "auto_volume": "On (normalizes volume between apps)",
+                "dialogue_clarity": "On (if available)",
+                "night_mode": "On (for late viewing - compresses dynamics)"
+            },
+            "media_server_settings": {
+                "plex": {
+                    "quality": "Maximum (for direct play)",
+                    "direct_play": "Enabled",
+                    "allow_insecure": "Same network only",
+                    "subtitles": "Burn-in if needed (avoids transcoding)"
+                },
+                "emby": {
+                    "playback_quality": "Direct play preferred",
+                    "max_streaming_bitrate": "No limit",
+                    "enable_hdr": "On"
+                },
+                "jellyfin": {
+                    "playback_quality": "Auto",
+                    "prefer_direct_play": "On",
+                    "enable_hdr": "On"
+                }
+            },
+            "notes": "No Dolby Vision support - Samsung uses HDR10+. Enable Input Signal Plus for full 4K HDR (this is CRITICAL - TV won't display HDR without it). VRR up to 4K@144Hz with FreeSync Premium Pro. For Plex/Emby/Jellyfin: ensure Direct Play is enabled to avoid transcoding.",
+            "first_time_setup": [
+                "1. Enable Input Signal Plus for each HDMI port (Connection > External Device Manager)",
+                "2. Set Picture Mode to Movie or Filmmaker Mode",
+                "3. Enable Game Mode settings (VRR, ALLM) if using gaming sources",
+                "4. For standalone audio: Set Sound Mode to Adaptive Sound",
+                "5. Install Plex/Emby/Jellyfin from Samsung App Store",
+                "6. Configure media server app for Direct Play (no transcoding)"
+            ]
+        },
+        "samsung_qn95c": {
+            "name": "Samsung QN95C Neo QLED",
+            "type": "tv",
+            "native_dv": False,
+            "lldv_compatible": False,
+            "max_resolution": "4K",
+            "max_refresh": 144,
+            "hdr_support": ["HDR10", "HDR10+", "HLG"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 1400,
+            "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
+            "freesync": "FreeSync Premium Pro",
+            "earc_support": True,
+            "panel_tech": "Neo QLED Mini LED",
+            "notes": "Flagship Neo QLED. No DV - use HDR10+. One Connect Box separates inputs."
+        },
+        "samsung_s95d_oled": {
+            "name": "Samsung S95D QD-OLED",
+            "type": "tv",
+            "native_dv": False,
+            "lldv_compatible": False,
+            "max_resolution": "4K",
+            "max_refresh": 144,
+            "hdr_support": ["HDR10", "HDR10+", "HLG"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 1300,
+            "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
+            "panel_tech": "QD-OLED",
+            "notes": "Samsung QD-OLED. Excellent HDR peak brightness. No DV support."
+        },
+        # LG TVs
+        "lg_c4_oled": {
+            "name": "LG C4 OLED",
+            "type": "tv",
+            "native_dv": True,
+            "lldv_compatible": True,
+            "max_resolution": "4K",
+            "max_refresh": 144,
+            "hdr_support": ["HDR10", "HLG", "Dolby Vision"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 1400,
+            "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
+            "earc_support": True,
+            "panel_tech": "WOLED",
+            "notes": "Native DV support. VRR up to 4K@144Hz. webOS smart platform."
+        },
+        "lg_c2_oled": {
+            "name": "LG C2 OLED",
+            "type": "tv",
+            "native_dv": True,
+            "lldv_compatible": True,
+            "max_resolution": "4K",
+            "max_refresh": 120,
+            "hdr_support": ["HDR10", "HLG", "Dolby Vision"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 1500,
+            "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
+            "earc_support": True,
+            "panel_tech": "WOLED evo",
+            "notes": "Native DV. Popular gaming OLED with 4x HDMI 2.1 ports."
+        },
+        "lg_c1_oled": {
+            "name": "LG C1 OLED",
+            "type": "tv",
+            "native_dv": True,
+            "lldv_compatible": True,
+            "max_resolution": "4K",
+            "max_refresh": 120,
+            "hdr_support": ["HDR10", "HLG", "Dolby Vision"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 1600,
+            "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
+            "earc_support": True,
+            "panel_tech": "WOLED",
+            "notes": "Native DV. Older but still excellent OLED. Good HDFury EDID reference."
+        },
+        "lg_g4_oled": {
+            "name": "LG G4 OLED",
+            "type": "tv",
+            "native_dv": True,
+            "lldv_compatible": True,
+            "max_resolution": "4K",
+            "max_refresh": 144,
+            "hdr_support": ["HDR10", "HLG", "Dolby Vision"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 1300,
+            "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
+            "earc_support": True,
+            "panel_tech": "MLA WOLED",
+            "notes": "LG Gallery OLED with MLA technology. Brightest LG OLED. Native DV."
+        },
+        # Sony TVs
+        "sony_a95k_oled": {
+            "name": "Sony A95K QD-OLED",
+            "type": "tv",
+            "native_dv": True,
+            "lldv_compatible": True,
+            "max_resolution": "4K",
+            "max_refresh": 120,
+            "hdr_support": ["HDR10", "HLG", "Dolby Vision"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 1600,
+            "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
+            "earc_support": True,
+            "panel_tech": "QD-OLED",
+            "notes": "Sony QD-OLED with Cognitive Processor XR. Excellent DV tone mapping."
+        },
+        "sony_x95l": {
+            "name": "Sony X95L Mini LED",
+            "type": "tv",
+            "native_dv": True,
+            "lldv_compatible": True,
+            "max_resolution": "4K",
+            "max_refresh": 120,
+            "hdr_support": ["HDR10", "HLG", "Dolby Vision"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 1500,
+            "recommended_edid": "automix",
+            "vrr_support": True,
+            "allm_support": True,
+            "panel_tech": "Mini LED LCD",
+            "notes": "Sony flagship Mini LED. Native DV. Google TV platform."
+        },
+        # More projectors
+        "benq_w5800": {
+            "name": "BenQ W5800",
+            "type": "projector",
+            "native_dv": False,
+            "lldv_compatible": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "hdr_support": ["HDR10", "HLG"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 2800,
+            "recommended_edid": "automix",
+            "vrr_support": False,
+            "allm_support": False,
+            "light_source": "laser",
+            "panel_tech": "DLP",
+            "notes": "BenQ laser projector. Use LLDV for DV content."
+        },
+        "optoma_uhz50": {
+            "name": "Optoma UHZ50",
+            "type": "projector",
+            "native_dv": False,
+            "lldv_compatible": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "hdr_support": ["HDR10", "HLG"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 2500,
+            "recommended_edid": "automix",
+            "vrr_support": False,
+            "allm_support": False,
+            "light_source": "laser",
+            "panel_tech": "DLP",
+            "notes": "Optoma laser 4K projector. Good for LLDV conversion."
+        },
+        "sony_vpl_xw5000": {
+            "name": "Sony VPL-XW5000ES",
+            "type": "projector",
+            "native_dv": False,
+            "lldv_compatible": True,
+            "max_resolution": "4K",
+            "max_refresh": 120,
+            "hdr_support": ["HDR10", "HLG"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 2000,
+            "recommended_edid": "automix",
+            "vrr_support": False,
+            "allm_support": False,
+            "light_source": "laser",
+            "panel_tech": "SXRD (native 4K)",
+            "notes": "Entry Sony native 4K laser. Excellent for LLDV."
+        },
+        "jvc_dla_nz9": {
+            "name": "JVC DLA-NZ9",
+            "type": "projector",
+            "native_dv": False,
+            "lldv_compatible": True,
+            "max_resolution": "8K",
+            "max_refresh": 60,
+            "hdr_support": ["HDR10", "HLG", "HDR10+"],
+            "hdcp": "2.3",
+            "handshake_time_ms": 3200,
+            "recommended_edid": "automix",
+            "vrr_support": False,
+            "allm_support": False,
+            "light_source": "laser",
+            "panel_tech": "D-ILA (8K e-shift)",
+            "lens_memory": True,
+            "notes": "JVC flagship with 8K e-shift. Frame Adapt HDR. Best candidate for LLDV."
         }
     },
     "hdfury_devices": {
@@ -591,6 +1130,76 @@ DEVICE_PROFILES = {
             "downscale": False,
             "current_firmware": "N/A",
             "notes": "eARC adapter. Adds eARC to non-eARC AVRs/soundbars."
+        },
+        # ========== ESP32 / DIY HDMI Alternatives ==========
+        "esp32_vrr_injector": {
+            "name": "ESP32 VRR Injector",
+            "type": "diy_hdmi",
+            "inputs": 1,
+            "outputs": 1,
+            "lldv_support": False,
+            "vrr_support": True,
+            "allm_support": True,
+            "earc_support": False,
+            "edid_modes": ["custom"],
+            "custom_edid_slots": 1,
+            "max_resolution": "4K",
+            "max_refresh": 120,
+            "project_url": "https://github.com/Mrcuve0/VRR-Mod",
+            "notes": "DIY VRR injection for non-VRR displays. Requires soldering/assembly. Community project."
+        },
+        "esp32_edid_injector": {
+            "name": "ESP32 EDID Injector",
+            "type": "diy_hdmi",
+            "inputs": 1,
+            "outputs": 1,
+            "lldv_support": False,
+            "vrr_support": False,
+            "allm_support": False,
+            "earc_support": False,
+            "edid_modes": ["custom"],
+            "custom_edid_slots": 1,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "project_url": "https://github.com/topics/edid-emulator",
+            "notes": "DIY EDID emulator. Fixes EDID handshake issues. Low cost alternative to HDFury."
+        },
+        "thinklogical_tldp": {
+            "name": "Thinklogical EDID Emulator",
+            "type": "edid_emulator",
+            "inputs": 1,
+            "outputs": 1,
+            "lldv_support": False,
+            "vrr_support": False,
+            "allm_support": False,
+            "earc_support": False,
+            "edid_modes": ["custom"],
+            "notes": "Commercial EDID emulator. Stores custom EDID. Simpler than HDFury."
+        },
+        "gofanco_edid_emulator": {
+            "name": "gofanco EDID Emulator",
+            "type": "edid_emulator",
+            "inputs": 1,
+            "outputs": 1,
+            "lldv_support": False,
+            "vrr_support": False,
+            "allm_support": False,
+            "earc_support": False,
+            "edid_modes": ["custom", "passthrough"],
+            "notes": "Budget EDID emulator. 4K60 passthrough. Stores 1 custom EDID."
+        },
+        "avr_key": {
+            "name": "HDFury AVR-Key",
+            "type": "hdfury",
+            "inputs": 1,
+            "outputs": 1,
+            "lldv_support": True,
+            "vrr_support": False,
+            "allm_support": False,
+            "earc_support": False,
+            "edid_modes": ["automix", "custom"],
+            "custom_edid_slots": 10,
+            "notes": "HDMI audio extractor with LLDV injection. Good for older AVRs."
         }
     },
     "avrs": {
@@ -612,16 +1221,140 @@ DEVICE_PROFILES = {
             "room_correction_mic": "YPAO microphone (included)",
             "dirac_support": False,
             "config_paths": {
-                "speaker_setup": "Setup > Speaker > Manual Setup > Configuration",
-                "crossover": "Setup > Speaker > Manual Setup > Crossover",
-                "distance": "Setup > Speaker > Manual Setup > Distance",
-                "level": "Setup > Speaker > Manual Setup > Level",
-                "room_correction": "Setup > Speaker > YPAO",
-                "surround_decode": "Sound > Surround Decoder",
-                "hdmi_audio": "Setup > HDMI > Audio Output",
-                "earc": "Setup > HDMI > HDMI Control > ARC",
+                "speaker_setup": {
+                    "path": "Setup > Speaker > Manual Setup > Configuration",
+                    "steps": [
+                        "Press SETUP button on remote or front panel",
+                        "Navigate to 'Speaker' using arrow keys",
+                        "Select 'Manual Setup'",
+                        "Select 'Configuration'",
+                        "Set each speaker position: Front L/R, Center, Surround L/R, etc.",
+                        "Options: Large, Small, or None for each position"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "Speaker > Manual Setup",
+                    "recommended": "Set based on speaker size - Small for bookshelf, Large for floorstanders"
+                },
+                "crossover": {
+                    "path": "Setup > Speaker > Manual Setup > Crossover",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'Speaker' > 'Manual Setup'",
+                        "Select 'Crossover'",
+                        "Set crossover frequency for each speaker set to 'Small'",
+                        "Options: 40Hz, 60Hz, 80Hz, 90Hz, 100Hz, 110Hz, 120Hz, 150Hz, 200Hz"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "Speaker > Manual Setup",
+                    "recommended": "80Hz for most bookshelf speakers, 60Hz for larger speakers"
+                },
+                "distance": {
+                    "path": "Setup > Speaker > Manual Setup > Distance",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'Speaker' > 'Manual Setup'",
+                        "Select 'Distance'",
+                        "Measure distance from each speaker to listening position",
+                        "Enter distance for each speaker (in feet or meters)",
+                        "Use a tape measure for accuracy"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "Speaker > Manual Setup",
+                    "recommended": "Measure accurately - this affects time alignment"
+                },
+                "level": {
+                    "path": "Setup > Speaker > Manual Setup > Level",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'Speaker' > 'Manual Setup'",
+                        "Select 'Level'",
+                        "Use test tones and SPL meter",
+                        "Adjust each speaker to same level (75dB reference)",
+                        "Range: -10.0dB to +10.0dB in 0.5dB steps"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "Speaker > Manual Setup",
+                    "recommended": "Use SPL meter app, aim for 75dB at listening position"
+                },
+                "ypao": {
+                    "path": "Setup > Speaker > YPAO",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'Speaker'",
+                        "Select 'YPAO'",
+                        "Connect YPAO microphone to front panel YPAO jack",
+                        "Place microphone at ear height at listening position",
+                        "Select 'Start' and leave the room",
+                        "Wait for measurement to complete (several minutes)",
+                        "Review and save results"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "Speaker",
+                    "recommended": "Run YPAO for automatic room correction. See Speaker Tuning guide."
+                },
+                "surround_decode": {
+                    "path": "Sound > Surround Decoder",
+                    "steps": [
+                        "Press SOUND button on remote",
+                        "Navigate to 'Surround Decoder'",
+                        "Select decoder mode for stereo content",
+                        "Options: DTS Neural:X, Dolby Surround, CINEMA DSP, etc."
+                    ],
+                    "menu_button": "SOUND",
+                    "tab": "Surround Decoder",
+                    "recommended": "DTS Neural:X or Dolby Surround for upmixing stereo to surround"
+                },
+                "hdmi_audio": {
+                    "path": "Setup > HDMI > Audio Output",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'HDMI'",
+                        "Select 'Audio Output'",
+                        "Options: Amp (receiver speakers), TV (TV speakers), or TV+Amp (both)"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "HDMI",
+                    "recommended": "Amp (processes audio through receiver)"
+                },
+                "earc": {
+                    "path": "Setup > HDMI > HDMI Control > ARC",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'HDMI'",
+                        "Select 'HDMI Control'",
+                        "Enable 'HDMI Control' first",
+                        "Set 'ARC' to On",
+                        "Connect TV to HDMI OUT (ARC) port on receiver",
+                        "Enable eARC/ARC on TV as well"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "HDMI > HDMI Control",
+                    "recommended": "On - enables eARC for lossless audio from TV apps"
+                },
+                "4k_passthrough": {
+                    "path": "Setup > HDMI > 4K Signal Format",
+                    "steps": [
+                        "Press SETUP button on remote",
+                        "Navigate to 'HDMI'",
+                        "Select '4K Signal Format'",
+                        "Set to 'Mode 1' for 4K/60Hz 4:4:4 and 4K/120Hz",
+                        "Or 'Mode 2' for maximum compatibility"
+                    ],
+                    "menu_button": "SETUP",
+                    "tab": "HDMI",
+                    "recommended": "Mode 1 (8K/4K 120Hz) for full HDMI 2.1 features"
+                }
             },
-            "notes": "Good HDMI 2.1 passthrough. Use eARC for best audio. YPAO room correction included."
+            "recommended_settings": {
+                "speaker_config": "Set based on actual speakers (Small with crossover for most)",
+                "crossover": "80Hz for bookshelf, 60Hz for floorstanders",
+                "ypao": "Run YPAO automatic calibration",
+                "4k_signal_format": "Mode 1 (for 4K@120Hz, VRR)",
+                "hdmi_control": "On (enables CEC/ARC)",
+                "arc": "On (for TV audio return)",
+                "audio_output": "Amp"
+            },
+            "notes": "Good HDMI 2.1 passthrough. Use eARC for best audio from TV apps. YPAO room correction included - run after speaker setup."
         },
         "yamaha_rx_a6a": {
             "name": "Yamaha RX-A6A",
@@ -767,6 +1500,94 @@ DEVICE_PROFILES = {
                 "earc": "Settings > Audio > eARC",
             },
             "notes": "Premium processor with ARC Genesis room correction. Excellent measurement-based EQ."
+        },
+        "sony_str_an1000": {
+            "name": "Sony STR-AN1000",
+            "type": "avr",
+            "earc_support": True,
+            "atmos_support": True,
+            "dtsx_support": True,
+            "passthrough_4k120": True,
+            "vrr_support": True,
+            "allm_support": True,
+            "hdcp": "2.3",
+            "handshake_time_ms": 550,
+            "recommended_audio_mode": "earc",
+            "max_channels": "7.1.2",
+            "amplifier_channels": 7,
+            "room_correction": "D.C.A.C. IX",
+            "room_correction_mic": "Sony measurement microphone (included)",
+            "notes": "Sony budget HDMI 2.1 AVR. 360 Spatial Sound Mapping available. Good value."
+        },
+        "denon_avr_x6800h": {
+            "name": "Denon AVR-X6800H",
+            "type": "avr",
+            "earc_support": True,
+            "atmos_support": True,
+            "dtsx_support": True,
+            "passthrough_4k120": True,
+            "vrr_support": True,
+            "allm_support": True,
+            "hdcp": "2.3",
+            "handshake_time_ms": 550,
+            "recommended_audio_mode": "earc",
+            "max_channels": "11.4",
+            "amplifier_channels": 11,
+            "room_correction": "Audyssey MultEQ XT32",
+            "dirac_support": True,
+            "notes": "Flagship Denon. 11 channels of amplification. Dirac Live included."
+        },
+        "marantz_cinema_60": {
+            "name": "Marantz Cinema 60",
+            "type": "avr",
+            "earc_support": True,
+            "atmos_support": True,
+            "dtsx_support": True,
+            "passthrough_4k120": True,
+            "vrr_support": True,
+            "allm_support": True,
+            "hdcp": "2.3",
+            "handshake_time_ms": 600,
+            "recommended_audio_mode": "earc",
+            "max_channels": "11.4",
+            "amplifier_channels": 9,
+            "room_correction": "Audyssey MultEQ XT32",
+            "dirac_support": True,
+            "notes": "Premium Marantz. Audiophile sound quality. Audyssey XT32 + Dirac."
+        },
+        "onkyo_tx_rz70": {
+            "name": "Onkyo TX-RZ70",
+            "type": "avr",
+            "earc_support": True,
+            "atmos_support": True,
+            "dtsx_support": True,
+            "passthrough_4k120": True,
+            "vrr_support": True,
+            "allm_support": True,
+            "hdcp": "2.3",
+            "handshake_time_ms": 650,
+            "recommended_audio_mode": "earc",
+            "max_channels": "11.2",
+            "amplifier_channels": 11,
+            "room_correction": "Dirac Live",
+            "notes": "Flagship Onkyo. THX Certified. Dirac Live included."
+        },
+        "integra_drx_8_4": {
+            "name": "Integra DRX-8.4",
+            "type": "avr",
+            "earc_support": True,
+            "atmos_support": True,
+            "dtsx_support": True,
+            "passthrough_4k120": True,
+            "vrr_support": True,
+            "allm_support": True,
+            "hdcp": "2.3",
+            "handshake_time_ms": 600,
+            "recommended_audio_mode": "earc",
+            "max_channels": "11.4",
+            "amplifier_channels": 11,
+            "room_correction": "Dirac Live",
+            "notes": "Premium Integra. Custom integrator focused. Dirac Live included."
         }
     },
     "sources": {
@@ -847,6 +1668,424 @@ DEVICE_PROFILES = {
             "match_resolution": True,
             "hdcp": "2.3",
             "notes": "Premium media player. Known compatibility with Vrroom repeater mode."
+        },
+        # ========== Gaming Consoles ==========
+        "xbox_series_s": {
+            "name": "Xbox Series S",
+            "type": "console",
+            "dv_output": True,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "1440p",
+            "max_refresh": 120,
+            "vrr_support": True,
+            "allm_support": True,
+            "hdcp": "2.3",
+            "notes": "Digital-only Xbox. 1440p max but can output 4K signal. VRR capable."
+        },
+        "xbox_one_x": {
+            "name": "Xbox One X",
+            "type": "console",
+            "dv_output": True,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "vrr_support": True,
+            "allm_support": True,
+            "hdcp": "2.2",
+            "notes": "4K capable Xbox One. DV support added via update. VRR support added."
+        },
+        "xbox_one_s": {
+            "name": "Xbox One S",
+            "type": "console",
+            "dv_output": True,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "vrr_support": True,
+            "allm_support": False,
+            "hdcp": "2.2",
+            "notes": "4K media playback, upscaled 4K gaming. HDR10 and DV supported."
+        },
+        "xbox_one": {
+            "name": "Xbox One",
+            "type": "console",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": False,
+            "max_resolution": "1080p",
+            "max_refresh": 60,
+            "vrr_support": False,
+            "allm_support": False,
+            "hdcp": "2.0",
+            "notes": "Original Xbox One. 1080p only, no HDR."
+        },
+        "xbox_360": {
+            "name": "Xbox 360",
+            "type": "console",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": False,
+            "max_resolution": "1080p",
+            "max_refresh": 60,
+            "vrr_support": False,
+            "allm_support": False,
+            "hdcp": "1.4",
+            "notes": "Legacy console. 1080p max. Component or HDMI output."
+        },
+        "ps4_pro": {
+            "name": "PlayStation 4 Pro",
+            "type": "console",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "vrr_support": False,
+            "allm_support": False,
+            "hdcp": "2.2",
+            "notes": "4K upscaled gaming. HDR10 supported. Enable 4K in settings."
+        },
+        "ps4": {
+            "name": "PlayStation 4",
+            "type": "console",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "1080p",
+            "max_refresh": 60,
+            "vrr_support": False,
+            "allm_support": False,
+            "hdcp": "2.2",
+            "notes": "1080p gaming with HDR10 support."
+        },
+        "ps3": {
+            "name": "PlayStation 3",
+            "type": "console",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": False,
+            "max_resolution": "1080p",
+            "max_refresh": 60,
+            "vrr_support": False,
+            "allm_support": False,
+            "hdcp": "1.4",
+            "notes": "Legacy console. 1080p max. Also plays Blu-ray discs."
+        },
+        "nintendo_switch": {
+            "name": "Nintendo Switch",
+            "type": "console",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": False,
+            "max_resolution": "1080p",
+            "max_refresh": 60,
+            "vrr_support": False,
+            "allm_support": False,
+            "hdcp": "1.4",
+            "notes": "1080p docked mode only. Requires dock for HDMI output."
+        },
+        "nintendo_switch_oled": {
+            "name": "Nintendo Switch OLED",
+            "type": "console",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": False,
+            "max_resolution": "1080p",
+            "max_refresh": 60,
+            "vrr_support": False,
+            "allm_support": False,
+            "hdcp": "1.4",
+            "notes": "1080p docked mode. Improved dock with LAN port."
+        },
+        "nintendo_switch_2": {
+            "name": "Nintendo Switch 2",
+            "type": "console",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "vrr_support": True,
+            "allm_support": True,
+            "hdcp": "2.3",
+            "notes": "Next-gen Nintendo. 4K docked output with HDR10. DLSS upscaling."
+        },
+        # ========== Media Players ==========
+        "nvidia_shield_2019": {
+            "name": "Nvidia Shield TV (2019)",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": True,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "match_resolution": True,
+            "hdcp": "2.2",
+            "notes": "Tube version. Slightly less powerful than Pro but same video output."
+        },
+        "nvidia_shield_2017": {
+            "name": "Nvidia Shield TV (2017)",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": True,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "match_resolution": True,
+            "hdcp": "2.2",
+            "notes": "Older Shield. Still excellent. DV added via software update."
+        },
+        "nvidia_shield_2015": {
+            "name": "Nvidia Shield TV (2015)",
+            "type": "source",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "match_resolution": True,
+            "hdcp": "2.2",
+            "notes": "First Shield. No DV support but HDR10 works. Legacy device."
+        },
+        "apple_tv_4k_2021": {
+            "name": "Apple TV 4K (2021)",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": True,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "match_resolution": False,
+            "hdcp": "2.2",
+            "notes": "A12 chip. Set to 4K SDR 60Hz with match content enabled."
+        },
+        "apple_tv_4k_2024": {
+            "name": "Apple TV 4K (2024)",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": True,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "match_resolution": False,
+            "hdcp": "2.3",
+            "notes": "Latest Apple TV. A15 chip. Thread support. Match content recommended."
+        },
+        "apple_tv_hd": {
+            "name": "Apple TV HD",
+            "type": "source",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": False,
+            "max_resolution": "1080p",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "match_resolution": False,
+            "hdcp": "1.4",
+            "notes": "1080p only Apple TV. No HDR support."
+        },
+        "chromecast_google_tv_4k": {
+            "name": "Chromecast with Google TV (4K)",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "hdr10plus_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "hdcp": "2.2",
+            "notes": "Budget 4K streamer. DV and HDR10+ support. Google TV interface."
+        },
+        "chromecast_google_tv_hd": {
+            "name": "Chromecast with Google TV (HD)",
+            "type": "source",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "1080p",
+            "max_refresh": 60,
+            "hdcp": "1.4",
+            "notes": "Budget 1080p streamer. HDR10 only."
+        },
+        "fire_tv_stick_4k_max": {
+            "name": "Fire TV Stick 4K Max",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "hdr10plus_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "hdcp": "2.2",
+            "notes": "Amazon 4K streamer. DV and HDR10+ support. Wi-Fi 6E."
+        },
+        "fire_tv_cube": {
+            "name": "Fire TV Cube (3rd Gen)",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "hdr10plus_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "hdcp": "2.2",
+            "notes": "Premium Amazon streamer. Hands-free Alexa. HDMI input for cable boxes."
+        },
+        "roku_ultra": {
+            "name": "Roku Ultra (2024)",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "hdr10plus_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "hdcp": "2.2",
+            "notes": "Premium Roku. DV and HDR10+ support. Ethernet port."
+        },
+        # Homatics Players
+        "homatics_box_r_4k_plus": {
+            "name": "Homatics Box R 4K Plus",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": True,
+            "hdr10_output": True,
+            "hdr10plus_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "hdcp": "2.2",
+            "atmos_passthrough": True,
+            "dtsx_passthrough": True,
+            "processor": "Amlogic S905X4-K",
+            "ram_gb": 4,
+            "storage_gb": 32,
+            "wifi": "Wi-Fi 6",
+            "os": "Android TV 12",
+            "notes": "Certified DV/HDR10+ streamer. VS10 engine. Netflix/Disney+ certified. Excellent for Plex."
+        },
+        "homatics_box_r_4k": {
+            "name": "Homatics Box R 4K",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": True,
+            "hdr10_output": True,
+            "hdr10plus_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "hdcp": "2.2",
+            "atmos_passthrough": True,
+            "processor": "Amlogic S905X4",
+            "ram_gb": 4,
+            "storage_gb": 32,
+            "wifi": "Wi-Fi 5",
+            "os": "Android TV 11",
+            "notes": "DV certified streamer. Good budget option for HDR streaming."
+        },
+        "homatics_dongle_g": {
+            "name": "Homatics Dongle G 4K",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "hdcp": "2.2",
+            "os": "Google TV",
+            "notes": "Compact 4K dongle. Google TV certified. DV support."
+        },
+        # Zidoo Players
+        "zidoo_z2000_pro": {
+            "name": "Zidoo Z2000 Pro",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": True,
+            "hdr10_output": True,
+            "hdr10plus_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "match_resolution": True,
+            "atmos_passthrough": True,
+            "dtsx_passthrough": True,
+            "hdcp": "2.3",
+            "notes": "Flagship Zidoo. VS10 engine for DV. Internal HDD bay. Excellent for local playback."
+        },
+        "zidoo_z9x": {
+            "name": "Zidoo Z9X",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": True,
+            "hdr10_output": True,
+            "hdr10plus_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "match_resolution": True,
+            "atmos_passthrough": True,
+            "hdcp": "2.2",
+            "notes": "Popular Zidoo. VS10 for DV. Good for NAS/local media playback."
+        },
+        # Raspberry Pi
+        "raspberry_pi_5": {
+            "name": "Raspberry Pi 5",
+            "type": "source",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "hdcp": "None",
+            "notes": "DIY media player. LibreELEC/OSMC for Kodi. 4K60 HDR10 capable. No HDCP."
+        },
+        "raspberry_pi_4": {
+            "name": "Raspberry Pi 4",
+            "type": "source",
+            "dv_output": False,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "match_frame_rate": True,
+            "hdcp": "None",
+            "notes": "Popular DIY player. LibreELEC/OSMC. Dual HDMI outputs. No HDCP."
+        },
+        # Blu-ray Players
+        "panasonic_ub9000": {
+            "name": "Panasonic UB9000",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "hdr10plus_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "hdcp": "2.3",
+            "notes": "Reference UHD Blu-ray player. DV and HDR10+. Excellent HDR optimizer."
+        },
+        "sony_ubp_x800m2": {
+            "name": "Sony UBP-X800M2",
+            "type": "source",
+            "dv_output": True,
+            "lldv_output": False,
+            "hdr10_output": True,
+            "max_resolution": "4K",
+            "max_refresh": 60,
+            "hdcp": "2.2",
+            "notes": "Mid-range UHD player. DV support. SACD/DVD-Audio playback."
         }
     },
     "speakers": {
@@ -1245,6 +2484,333 @@ OPTIMIZATION_GOALS = {
         "name": "Minimize Format Switching",
         "description": "Reduce the number of HDMI re-negotiations by standardizing output format across content types.",
         "category": "video"
+    }
+}
+
+
+# =============================================================================
+# Speaker Tuning Guides
+# =============================================================================
+
+SPEAKER_TUNING_GUIDES = {
+    "yamaha_ypao": {
+        "name": "Yamaha YPAO (Yamaha Parametric Room Acoustic Optimizer)",
+        "manufacturer": "Yamaha",
+        "description": "Automatic room calibration system included with Yamaha AV receivers.",
+        "equipment_needed": [
+            "YPAO microphone (included with receiver)",
+            "Microphone stand or tripod",
+            "Quiet room during measurement"
+        ],
+        "steps": [
+            {
+                "step": 1,
+                "title": "Prepare the Room",
+                "instructions": [
+                    "Turn off fans, AC, and other noise sources",
+                    "Close windows and doors",
+                    "Remove obstacles between speakers and listening position",
+                    "Ensure all speakers are connected and powered"
+                ]
+            },
+            {
+                "step": 2,
+                "title": "Position the Microphone",
+                "instructions": [
+                    "Place microphone at ear height when seated (typically 3-4 feet)",
+                    "Position at main listening position (center of couch)",
+                    "Use tripod or mic stand - don't hold by hand",
+                    "Point microphone straight up (not toward any speaker)",
+                    "Keep at least 3 feet from walls"
+                ]
+            },
+            {
+                "step": 3,
+                "title": "Connect Microphone",
+                "instructions": [
+                    "Plug YPAO microphone into YPAO jack on front of receiver",
+                    "Ensure secure connection",
+                    "Wait for receiver to detect microphone"
+                ]
+            },
+            {
+                "step": 4,
+                "title": "Run YPAO",
+                "instructions": [
+                    "Navigate to: Setup > Speaker > YPAO",
+                    "Select 'Start' to begin measurement",
+                    "Leave the room during measurement (sounds can affect results)",
+                    "Wait for all test tones to complete (several minutes)",
+                    "Receiver will measure each speaker individually"
+                ]
+            },
+            {
+                "step": 5,
+                "title": "Review Results",
+                "instructions": [
+                    "Check for any error messages (speaker wiring, phase issues)",
+                    "Review detected speaker configuration",
+                    "Verify distances seem reasonable for your room",
+                    "Check that no speakers show 'None' unless intentional"
+                ]
+            },
+            {
+                "step": 6,
+                "title": "Apply Settings",
+                "instructions": [
+                    "Select the YPAO result to apply (Flat, Front, Natural)",
+                    "'Flat' = neutral frequency response (recommended for movies)",
+                    "'Natural' = slightly warmer sound",
+                    "'Front' = matches surround to front speakers",
+                    "Save and exit"
+                ]
+            },
+            {
+                "step": 7,
+                "title": "Optional: Multi-Position Measurement",
+                "instructions": [
+                    "For better coverage, run YPAO Multi-Point",
+                    "Move microphone to 8 different positions around seating area",
+                    "Follow on-screen prompts for each position",
+                    "This averages the room response for multiple listeners"
+                ]
+            }
+        ],
+        "common_issues": {
+            "Speaker Phase Error": "Check speaker wire polarity (+/- connections). Swap if necessary.",
+            "No Speaker Detected": "Verify speaker is connected and working. Check wire connections.",
+            "Distance Seems Wrong": "YPAO measures acoustic distance, not physical. Some variation is normal.",
+            "Subwoofer Issues": "Ensure sub is powered on, volume at 50%, crossover set to LFE or highest setting."
+        },
+        "tips": [
+            "Run YPAO after any room changes (furniture, acoustic treatments)",
+            "For subwoofers, set the sub's volume to 50% before calibration",
+            "Use YPAO-RSC (Reflected Sound Control) if available for room reflections",
+            "Consider the Yamaha YPAO app for more detailed results",
+            "Manual fine-tuning after YPAO is acceptable for personal preference"
+        ]
+    },
+    "audyssey": {
+        "name": "Audyssey MultEQ",
+        "manufacturer": "Denon / Marantz",
+        "description": "Automatic room calibration system for Denon and Marantz receivers.",
+        "equipment_needed": [
+            "Audyssey microphone (included with receiver)",
+            "Microphone stand",
+            "Audyssey app (optional, recommended for XT32)"
+        ],
+        "steps": [
+            {
+                "step": 1,
+                "title": "Prepare the Room",
+                "instructions": [
+                    "Minimize ambient noise",
+                    "Position speakers in final locations",
+                    "Set subwoofer volume to 75% (Audyssey will adjust)",
+                    "Set subwoofer crossover to maximum/LFE"
+                ]
+            },
+            {
+                "step": 2,
+                "title": "Position Microphone",
+                "instructions": [
+                    "Place at primary listening position first",
+                    "Ear height when seated",
+                    "Use included stand - microphone facing up",
+                    "Keep away from surfaces and walls"
+                ]
+            },
+            {
+                "step": 3,
+                "title": "Run Audyssey Setup",
+                "instructions": [
+                    "Navigate to: Setup > Speakers > Audyssey Setup",
+                    "Select measurement positions (3-8 positions available)",
+                    "More positions = better averaging",
+                    "Follow prompts to move microphone between measurements"
+                ]
+            },
+            {
+                "step": 4,
+                "title": "Review and Apply",
+                "instructions": [
+                    "Check speaker configuration detection",
+                    "Apply results",
+                    "Choose Audyssey mode: Reference, L/R Bypass, Flat, or Off"
+                ]
+            }
+        ],
+        "common_issues": {
+            "Sub too loud/quiet": "Use Dynamic EQ or adjust sub trim after calibration",
+            "Dialogue unclear": "Try Audyssey Dynamic Volume or increase center level +2dB",
+            "Bass lacking": "Enable Dynamic EQ at -15dB reference level"
+        },
+        "tips": [
+            "Use Audyssey app (MultEQ-X) for curve customization",
+            "Dynamic EQ compensates for low-volume listening",
+            "Consider Dirac Live upgrade for XT32 receivers",
+            "Run calibration when room is at typical viewing temperature"
+        ]
+    },
+    "dirac_live": {
+        "name": "Dirac Live",
+        "manufacturer": "Dirac Research",
+        "description": "Premium room correction available as upgrade for many receivers.",
+        "equipment_needed": [
+            "Dirac Live calibration microphone (UMIK-1 or UMIK-2 recommended)",
+            "Computer running Dirac Live software",
+            "USB cable for microphone",
+            "Measurement stand/tripod"
+        ],
+        "steps": [
+            {
+                "step": 1,
+                "title": "Setup Software",
+                "instructions": [
+                    "Download Dirac Live from dirac.com",
+                    "Connect USB microphone to computer",
+                    "Ensure receiver is on same network as computer",
+                    "Launch Dirac Live and detect receiver"
+                ]
+            },
+            {
+                "step": 2,
+                "title": "Measure Room",
+                "instructions": [
+                    "Follow app prompts for microphone positions",
+                    "9-17 positions around listening area recommended",
+                    "Keep microphone at ear height",
+                    "Stay out of room during measurements"
+                ]
+            },
+            {
+                "step": 3,
+                "title": "Design Target Curve",
+                "instructions": [
+                    "Use default Dirac target or customize",
+                    "Adjust bass, treble, and house curve to taste",
+                    "Preview before applying",
+                    "Save multiple filter slots for different preferences"
+                ]
+            },
+            {
+                "step": 4,
+                "title": "Apply Filters",
+                "instructions": [
+                    "Upload filters to receiver",
+                    "Select active filter slot on receiver",
+                    "A/B test with Dirac on/off"
+                ]
+            }
+        ],
+        "tips": [
+            "Dirac Live is considered superior to Audyssey/YPAO by many enthusiasts",
+            "The UMIK-2 microphone is calibrated and provides better accuracy",
+            "Bass Control (separate license) allows independent sub correction",
+            "Create multiple filter slots for movies vs music"
+        ]
+    },
+    "arc_genesis": {
+        "name": "Anthem ARC Genesis",
+        "manufacturer": "Anthem",
+        "description": "Room correction system for Anthem AV equipment.",
+        "equipment_needed": [
+            "ARC Genesis microphone (included)",
+            "Computer running ARC Genesis software",
+            "USB cable for microphone"
+        ],
+        "steps": [
+            {
+                "step": 1,
+                "title": "Install Software",
+                "instructions": [
+                    "Download ARC Genesis from anthemav.com",
+                    "Connect microphone via USB",
+                    "Connect computer to same network as receiver"
+                ]
+            },
+            {
+                "step": 2,
+                "title": "Run Measurements",
+                "instructions": [
+                    "Place microphone at 5 positions minimum",
+                    "Cover primary listening area",
+                    "ARC calculates room response and corrections"
+                ]
+            },
+            {
+                "step": 3,
+                "title": "Review and Apply",
+                "instructions": [
+                    "Examine frequency response graphs",
+                    "Adjust target curve if desired",
+                    "Upload corrections to receiver"
+                ]
+            }
+        ],
+        "tips": [
+            "ARC Genesis provides detailed measurement graphs",
+            "One of the most transparent room correction systems",
+            "Quick Measure option for simple setups"
+        ]
+    },
+    "manual_speaker_setup": {
+        "name": "Manual Speaker Setup (No Room Correction)",
+        "manufacturer": "Universal",
+        "description": "Basic speaker setup without automatic room correction.",
+        "equipment_needed": [
+            "Tape measure",
+            "SPL meter (phone app works: NIOSH SLM, Sound Meter)",
+            "Test tones (pink noise, available on YouTube or streaming)"
+        ],
+        "steps": [
+            {
+                "step": 1,
+                "title": "Measure Distances",
+                "instructions": [
+                    "Measure from each speaker to primary listening position",
+                    "Use straight-line distance (not along floor)",
+                    "Enter distances in receiver's speaker setup menu",
+                    "This ensures proper time alignment for all channels"
+                ]
+            },
+            {
+                "step": 2,
+                "title": "Set Crossover Frequencies",
+                "instructions": [
+                    "Small bookshelf speakers: 80-100Hz crossover",
+                    "Floor-standing speakers: 40-80Hz (or set to Large)",
+                    "Center channel: Usually 80Hz",
+                    "Subwoofer: Set sub's crossover to LFE/max, let receiver manage"
+                ]
+            },
+            {
+                "step": 3,
+                "title": "Level Matching",
+                "instructions": [
+                    "Use receiver's test tone generator",
+                    "Measure each speaker with SPL meter at listening position",
+                    "Adjust trim so all speakers read same level (75dB reference)",
+                    "Do NOT adjust subwoofer by ear - use meter"
+                ]
+            },
+            {
+                "step": 4,
+                "title": "Subwoofer Phase",
+                "instructions": [
+                    "Play bass-heavy content",
+                    "Flip sub phase between 0° and 180°",
+                    "Choose setting with MORE bass at listening position",
+                    "Some subs have variable phase (0-180°) for fine tuning"
+                ]
+            }
+        ],
+        "tips": [
+            "Reference level for movies is 85dB (main channels) / 95dB (LFE)",
+            "Phone SPL apps are adequate for level matching",
+            "Trust measurements over your ears for setup",
+            "Reposition speakers before adding acoustic treatment"
+        ]
     }
 }
 
@@ -2895,8 +4461,233 @@ def download_config(filename):
 
 @app.route("/api/devices")
 def get_devices():
-    """Get device profiles database."""
-    return jsonify(DEVICE_PROFILES)
+    """Get device profiles database including custom devices."""
+    # Start with built-in profiles
+    all_devices = {}
+    for category, devices in DEVICE_PROFILES.items():
+        all_devices[category] = dict(devices)
+
+    # Merge custom devices from database
+    try:
+        custom = get_custom_devices()
+        for category, devices in custom.items():
+            if category not in all_devices:
+                all_devices[category] = {}
+            all_devices[category].update(devices)
+    except Exception:
+        pass  # Database might not be available in all contexts
+
+    return jsonify(all_devices)
+
+
+@app.route("/api/devices/custom", methods=["GET"])
+def get_custom_devices_api():
+    """Get only custom user-added devices."""
+    try:
+        return jsonify(get_custom_devices())
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/devices/custom", methods=["POST"])
+def add_custom_device_api():
+    """Add a new custom device."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    required = ["category", "device_id", "name", "device_type"]
+    for field in required:
+        if field not in data:
+            return jsonify({"error": f"Missing required field: {field}"}), 400
+
+    specs = data.get("specs", {})
+    source_url = data.get("source_url")
+
+    result = add_custom_device(
+        category=data["category"],
+        device_id=data["device_id"],
+        name=data["name"],
+        device_type=data["device_type"],
+        specs=specs,
+        source_url=source_url
+    )
+
+    if result["success"]:
+        return jsonify(result), 201
+    else:
+        return jsonify(result), 400
+
+
+@app.route("/api/devices/custom/<device_id>", methods=["PUT"])
+def update_custom_device_api(device_id):
+    """Update an existing custom device."""
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    specs = data.get("specs", {})
+    source_url = data.get("source_url")
+
+    result = update_custom_device(device_id, specs, source_url)
+    return jsonify(result)
+
+
+@app.route("/api/devices/custom/<device_id>", methods=["DELETE"])
+def delete_custom_device_api(device_id):
+    """Delete a custom device."""
+    result = delete_custom_device(device_id)
+    return jsonify(result)
+
+
+@app.route("/api/devices/fetch-specs", methods=["POST"])
+def fetch_device_specs():
+    """Fetch device specifications from a URL (basic scraping)."""
+    data = request.get_json()
+    if not data or "url" not in data:
+        return jsonify({"error": "URL required"}), 400
+
+    url = data["url"]
+    device_type = data.get("device_type", "unknown")
+
+    try:
+        import urllib.request
+        import urllib.error
+        from html.parser import HTMLParser
+
+        # Simple HTML parser to extract text and find specs
+        class SpecParser(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.text_content = []
+                self.in_body = False
+                self.current_tag = None
+                self.specs = {}
+
+            def handle_starttag(self, tag, attrs):
+                self.current_tag = tag
+                if tag == 'body':
+                    self.in_body = True
+
+            def handle_endtag(self, tag):
+                if tag == 'body':
+                    self.in_body = False
+                self.current_tag = None
+
+            def handle_data(self, data):
+                if self.in_body and data.strip():
+                    self.text_content.append(data.strip())
+
+        # Fetch the URL
+        req = urllib.request.Request(url, headers={
+            'User-Agent': 'Mozilla/5.0 (compatible; VrroomConfigurator/1.0)'
+        })
+        with urllib.request.urlopen(req, timeout=10) as response:
+            html = response.read().decode('utf-8', errors='ignore')
+
+        parser = SpecParser()
+        parser.feed(html)
+        text = ' '.join(parser.text_content)
+
+        # Extract common specs using patterns
+        extracted_specs = {
+            "source_url": url,
+            "extracted": True
+        }
+
+        # Resolution patterns
+        if '8K' in text or '8k' in text or '7680' in text:
+            extracted_specs["max_resolution"] = "8K"
+        elif '4K' in text or '4k' in text or '3840' in text or '2160p' in text:
+            extracted_specs["max_resolution"] = "4K"
+        elif '1440p' in text or '2560' in text:
+            extracted_specs["max_resolution"] = "1440p"
+        elif '1080p' in text or '1920' in text:
+            extracted_specs["max_resolution"] = "1080p"
+
+        # HDR patterns
+        hdr_support = []
+        if 'Dolby Vision' in text or 'DolbyVision' in text:
+            hdr_support.append("Dolby Vision")
+        if 'HDR10+' in text or 'HDR10 Plus' in text:
+            hdr_support.append("HDR10+")
+        if 'HDR10' in text and 'HDR10+' not in text:
+            hdr_support.append("HDR10")
+        if 'HLG' in text:
+            hdr_support.append("HLG")
+        if hdr_support:
+            extracted_specs["hdr_support"] = hdr_support
+
+        # Refresh rate
+        if '144Hz' in text or '144 Hz' in text:
+            extracted_specs["max_refresh"] = 144
+        elif '120Hz' in text or '120 Hz' in text:
+            extracted_specs["max_refresh"] = 120
+        elif '60Hz' in text or '60 Hz' in text:
+            extracted_specs["max_refresh"] = 60
+
+        # Features
+        if 'VRR' in text or 'Variable Refresh Rate' in text:
+            extracted_specs["vrr_support"] = True
+        if 'ALLM' in text or 'Auto Low Latency' in text:
+            extracted_specs["allm_support"] = True
+        if 'eARC' in text:
+            extracted_specs["earc_support"] = True
+        if 'FreeSync' in text:
+            extracted_specs["freesync"] = True
+        if 'G-Sync' in text or 'G-SYNC' in text:
+            extracted_specs["gsync"] = True
+
+        # Audio features
+        if 'Dolby Atmos' in text:
+            extracted_specs["atmos_support"] = True
+        if 'DTS:X' in text or 'DTS-X' in text:
+            extracted_specs["dtsx_support"] = True
+
+        # HDMI
+        if 'HDMI 2.1' in text:
+            extracted_specs["hdmi_version"] = "2.1"
+        elif 'HDMI 2.0' in text:
+            extracted_specs["hdmi_version"] = "2.0"
+
+        # Panel type
+        if 'OLED' in text:
+            extracted_specs["panel_tech"] = "OLED"
+        elif 'Mini LED' in text or 'MiniLED' in text:
+            extracted_specs["panel_tech"] = "Mini LED"
+        elif 'QLED' in text:
+            extracted_specs["panel_tech"] = "QLED"
+        elif 'LED' in text:
+            extracted_specs["panel_tech"] = "LED LCD"
+
+        return jsonify({
+            "success": True,
+            "url": url,
+            "specs": extracted_specs,
+            "note": "Specs extracted automatically. Please verify accuracy."
+        })
+
+    except urllib.error.HTTPError as e:
+        return jsonify({"error": f"HTTP error: {e.code}"}), 400
+    except urllib.error.URLError as e:
+        return jsonify({"error": f"URL error: {str(e)}"}), 400
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch: {str(e)}"}), 500
+
+
+@app.route("/api/speaker-tuning")
+def get_speaker_tuning_guides():
+    """Get all speaker tuning guides."""
+    return jsonify(SPEAKER_TUNING_GUIDES)
+
+
+@app.route("/api/speaker-tuning/<guide_id>")
+def get_speaker_tuning_guide(guide_id):
+    """Get a specific speaker tuning guide."""
+    guide = SPEAKER_TUNING_GUIDES.get(guide_id)
+    if not guide:
+        return jsonify({"error": "Guide not found"}), 404
+    return jsonify(guide)
 
 
 @app.route("/api/edid-presets")
