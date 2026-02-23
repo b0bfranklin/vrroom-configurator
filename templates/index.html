@@ -1491,139 +1491,234 @@
 
         <!-- Config Analyzer Tab -->
         <div id="analyzer" class="tab-content">
-            <div class="card">
-                <h2>Connect to Vrroom</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                    Connect directly to your Vrroom by IP address to fetch the current configuration.
-                </p>
-                <div class="setup-form" style="grid-template-columns: 1fr auto auto; gap: 12px; align-items: end;">
-                    <div class="form-group">
-                        <label for="vrroom-ip">Vrroom IP Address</label>
-                        <input type="text" id="vrroom-ip" placeholder="192.168.1.100"
-                               style="background: var(--bg-tertiary); color: var(--text-primary);
-                                      border: 1px solid var(--border-color); border-radius: 6px;
-                                      padding: 10px 12px; font-size: 1em;">
-                    </div>
-                    <div class="form-group">
-                        <label for="vrroom-port">Port</label>
-                        <input type="text" id="vrroom-port" placeholder="2222" value="2222"
-                               style="background: var(--bg-tertiary); color: var(--text-primary);
-                                      border: 1px solid var(--border-color); border-radius: 6px;
-                                      padding: 10px 12px; font-size: 1em; width: 80px;">
-                    </div>
-                    <button class="btn" id="connect-vrroom-btn" onclick="connectToVrroom()">
-                        Connect
-                    </button>
-                    <button class="btn" id="backup-vrroom-btn" onclick="backupVrroom()" style="display: none; margin-left: 8px;">
-                        Backup Settings
-                    </button>
-                    <button class="btn" id="detect-vrroom-btn" onclick="detectVrroomInputs()" style="display: none; margin-left: 8px;">
-                        Detect Inputs
-                    </button>
+            <!-- Device Manuals Section -->
+            <div class="collapsible-card">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h2><span class="section-icon">&#128214;</span> Device Manuals</h2>
+                    <span class="toggle-icon">&#9660;</span>
                 </div>
-                <div id="vrroom-connection-status" style="margin-top: 12px; display: none;"></div>
-                <div id="vrroom-detected-inputs" style="margin-top: 12px; display: none;"></div>
-            </div>
-
-            <!-- HDR Signal Chain Diagnostic -->
-            <div class="card" id="hdr-diagnostic-card" style="display: none;">
-                <h2>&#128269; HDR Signal Chain Diagnostic</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                    Analyze where HDR is being lost in your signal chain. Click to diagnose.
-                </p>
-                <button class="btn" id="diagnose-hdr-btn" onclick="diagnoseHDRChain()">
-                    Run HDR Diagnostic
-                </button>
-                <div id="hdr-diagnostic-results" style="display: none; margin-top: 20px;">
-                    <!-- Signal chain visualization -->
-                    <h3 style="margin-bottom: 12px;">Signal Flow</h3>
-                    <div class="signal-chain" id="diagnostic-signal-chain">
-                        <!-- Populated by JS -->
-                    </div>
-
-                    <!-- Diagnostic summary -->
-                    <div class="diagnostic-grid" id="diagnostic-summary" style="margin-top: 16px;">
-                        <!-- Populated by JS -->
-                    </div>
-
-                    <!-- Issues found -->
-                    <div id="diagnostic-issues" style="margin-top: 20px;"></div>
-
-                    <!-- Quick fix recommendations -->
-                    <div id="diagnostic-recommendations" style="margin-top: 20px;"></div>
-                </div>
-            </div>
-
-            <!-- Settings Management -->
-            <div class="card" id="vrroom-settings-management" style="display: none;">
-                <h2>&#9881; Settings Management</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                    View and modify Vrroom settings directly. Changes are applied immediately.
-                </p>
-                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                    <button class="btn btn-secondary" onclick="refreshVrroomSettings()">
-                        &#128260; Refresh Settings
-                    </button>
-                    <select id="settings-filter" onchange="filterSettings(this.value)" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px;">
-                        <option value="all">All Settings</option>
-                        <option value="EDID">EDID Settings</option>
-                        <option value="SIGNAL">Signal Settings</option>
-                        <option value="AUDIO">Audio Settings</option>
-                    </select>
-                </div>
-                <div id="vrroom-settings-list">
-                    <!-- Populated by JS with setting controls -->
-                </div>
-            </div>
-
-            <div class="card" id="vrroom-live-config" style="display: none;">
-                <h2>Live Configuration Summary</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                    Current settings fetched from your Vrroom device.
-                </p>
-                <div id="vrroom-status-info" style="margin-bottom: 16px;"></div>
-                <div class="device-grid" id="vrroom-settings-grid"></div>
-            </div>
-
-            <div class="card">
-                <h2>Or Upload Configuration File</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                    Export your config from Vrroom web interface (CONFIG &rarr; EXPORT) and upload the file.
-                </p>
-                <div class="dropzone" id="config-dropzone">
-                    <div class="dropzone-icon">&#128196;</div>
-                    <p>Drag & drop your Vrroom config here</p>
-                    <p>or click to browse</p>
-                    <span class="file-types">Accepts: .json, .txt files</span>
-                    <input type="file" id="config-input" accept=".json,.txt">
-                </div>
-            </div>
-
-            <div class="loading" id="config-loading">
-                <div class="spinner"></div>
-                <p>Analyzing configuration...</p>
-            </div>
-
-            <div class="results" id="config-results">
-                <div class="card">
-                    <h2>Analysis Results</h2>
-                    <div class="summary" id="config-summary"></div>
-                    <div id="config-issues"></div>
-                </div>
-
-                <div class="card" id="recommendations-card" style="display: none;">
-                    <h2>Recommendations</h2>
-                    <div id="config-recommendations"></div>
-                </div>
-
-                <div class="card">
-                    <h2>Download Optimized Config</h2>
+                <div class="collapsible-content">
                     <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                        Download the optimized configuration and import it to your Vrroom (CONFIG &rarr; IMPORT).
-                        <strong>Remember to power cycle your Vrroom after importing!</strong>
+                        Upload device manuals (PDF) for your equipment. We'll extract settings, menu paths, and optimal configurations.
                     </p>
-                    <a href="#" class="btn btn-success" id="download-btn">Download Optimized Config</a>
+                    <div class="dropzone" id="manual-dropzone">
+                        <div class="dropzone-icon">&#128214;</div>
+                        <p>Drag & drop device manuals here</p>
+                        <p>or click to browse</p>
+                        <span class="file-types">Accepts: .pdf files (projector, AVR, media player manuals)</span>
+                        <input type="file" id="manual-input" accept=".pdf" multiple>
+                    </div>
+                    <div id="uploaded-manuals" style="margin-top: 16px;"></div>
                 </div>
+            </div>
+
+            <!-- Config Files Section -->
+            <div class="collapsible-card">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h2><span class="section-icon">&#128196;</span> Configuration Files</h2>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Upload configuration exports from your devices for analysis and optimization recommendations.
+                    </p>
+
+                    <div class="config-upload-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                        <!-- HDMI Processor Config -->
+                        <div class="config-upload-card" style="background: var(--bg-tertiary); border-radius: 8px; padding: 16px;">
+                            <h4 style="margin-bottom: 8px;">&#128247; HDMI Processor</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 12px;">
+                                HDFury Vrroom, Vertex2, Diva config exports
+                            </p>
+                            <div class="dropzone" id="hdmi-config-dropzone" style="padding: 20px;">
+                                <p>Drop config .json here</p>
+                                <input type="file" id="hdmi-config-input" accept=".json,.txt">
+                            </div>
+                        </div>
+
+                        <!-- AVR Config -->
+                        <div class="config-upload-card" style="background: var(--bg-tertiary); border-radius: 8px; padding: 16px;">
+                            <h4 style="margin-bottom: 8px;">&#128266; AV Receiver</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 12px;">
+                                Yamaha, Denon, Marantz config/preset files
+                            </p>
+                            <div class="dropzone" id="avr-config-dropzone" style="padding: 20px;">
+                                <p>Drop config file here</p>
+                                <input type="file" id="avr-config-input" accept=".json,.xml,.mcacc,.aud">
+                            </div>
+                        </div>
+
+                        <!-- Media Server Config -->
+                        <div class="config-upload-card" style="background: var(--bg-tertiary); border-radius: 8px; padding: 16px;">
+                            <h4 style="margin-bottom: 8px;">&#128187; Media Server</h4>
+                            <p style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 12px;">
+                                Plex, Emby, Jellyfin, Kodi settings
+                            </p>
+                            <div class="dropzone" id="media-config-dropzone" style="padding: 20px;">
+                                <p>Drop config file here</p>
+                                <input type="file" id="media-config-input" accept=".json,.xml,.db">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="config-analysis-results" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+
+            <!-- Cable & Connection Recommendations -->
+            <div class="collapsible-card">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h2><span class="section-icon">&#128268;</span> Cables & Connections</h2>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Get recommendations for cable types, brands, and which ports to use based on your equipment.
+                    </p>
+
+                    <div id="cable-recommendations">
+                        <h3 style="margin-bottom: 12px;">Based on Your Setup</h3>
+                        <div id="cable-recs-dynamic" style="margin-bottom: 20px;">
+                            <p style="color: var(--text-secondary);">Select your equipment in "My Setup" tab to get personalized cable recommendations.</p>
+                        </div>
+
+                        <h3 style="margin-bottom: 12px;">HDMI Cable Guide</h3>
+                        <div class="cable-guide-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px;">
+                            <div class="cable-card" style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px;">
+                                <h4 style="color: var(--accent-green);">Ultra High Speed HDMI</h4>
+                                <p style="font-size: 0.9em; color: var(--text-secondary); margin: 8px 0;">48Gbps - Required for:</p>
+                                <ul style="font-size: 0.85em; margin-left: 16px;">
+                                    <li>4K@120Hz with HDR</li>
+                                    <li>8K@60Hz</li>
+                                    <li>VRR/ALLM gaming</li>
+                                    <li>eARC (full bandwidth)</li>
+                                </ul>
+                                <p style="font-size: 0.85em; margin-top: 8px;"><strong>Brands:</strong> Zeskit, Monoprice 8K, Cable Matters, Belkin Ultra</p>
+                            </div>
+                            <div class="cable-card" style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px;">
+                                <h4 style="color: var(--accent-blue);">Premium High Speed HDMI</h4>
+                                <p style="font-size: 0.9em; color: var(--text-secondary); margin: 8px 0;">18Gbps - Sufficient for:</p>
+                                <ul style="font-size: 0.85em; margin-left: 16px;">
+                                    <li>4K@60Hz with HDR</li>
+                                    <li>4K@120Hz SDR</li>
+                                    <li>Dolby Vision</li>
+                                    <li>ARC (not eARC)</li>
+                                </ul>
+                                <p style="font-size: 0.85em; margin-top: 8px;"><strong>Brands:</strong> Monoprice Certified, AmazonBasics Premium, BlueRigger</p>
+                            </div>
+                            <div class="cable-card" style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px;">
+                                <h4 style="color: var(--accent-yellow);">Fiber Optic HDMI</h4>
+                                <p style="font-size: 0.9em; color: var(--text-secondary); margin: 8px 0;">For long runs (10m+):</p>
+                                <ul style="font-size: 0.85em; margin-left: 16px;">
+                                    <li>In-wall installations</li>
+                                    <li>Projector runs</li>
+                                    <li>No signal degradation</li>
+                                    <li>Directional (source→display)</li>
+                                </ul>
+                                <p style="font-size: 0.85em; margin-top: 8px;"><strong>Brands:</strong> RUIPRO, Monoprice SlimRun, Cable Matters Active</p>
+                            </div>
+                        </div>
+
+                        <h3 style="margin: 20px 0 12px;">Port Connection Guide</h3>
+                        <div class="port-guide" style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border-color);">
+                                        <th style="text-align: left; padding: 8px;">Connection</th>
+                                        <th style="text-align: left; padding: 8px;">Port to Use</th>
+                                        <th style="text-align: left; padding: 8px;">Why</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="port-guide-body">
+                                    <tr>
+                                        <td style="padding: 8px;">Source → HDMI Processor</td>
+                                        <td style="padding: 8px;">RX0/RX1 (Input)</td>
+                                        <td style="padding: 8px;">Use RX0 for primary source (fastest switching)</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px;">HDMI Processor → Display</td>
+                                        <td style="padding: 8px;">TX0 (Output) → HDMI 1</td>
+                                        <td style="padding: 8px;">TX0 for video, use display's primary HDMI port</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px;">HDMI Processor → AVR</td>
+                                        <td style="padding: 8px;">TX1 (Output) → HDMI IN</td>
+                                        <td style="padding: 8px;">eARC/ARC for audio return if supported</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px;">AVR → Speakers</td>
+                                        <td style="padding: 8px;">Speaker terminals</td>
+                                        <td style="padding: 8px;">Use banana plugs for easy connection</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Universal Remote Sequences -->
+            <div class="collapsible-card">
+                <div class="collapsible-header" onclick="toggleCollapsible(this)">
+                    <h2><span class="section-icon">&#128421;</span> Universal Remote Setup</h2>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="collapsible-content">
+                    <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                        Generate startup/shutdown sequences for universal remotes like Sofabaton X1.
+                    </p>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label for="remote-type">Remote Type</label>
+                        <select id="remote-type" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; width: 100%;">
+                            <option value="sofabaton_x1">Sofabaton X1</option>
+                            <option value="sofabaton_u1">Sofabaton U1</option>
+                            <option value="logitech_harmony">Logitech Harmony</option>
+                            <option value="broadlink">Broadlink RM4</option>
+                            <option value="generic_ir">Generic IR (Learn mode)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label for="activity-type">Activity</label>
+                        <select id="activity-type" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px 12px; width: 100%;">
+                            <option value="movie">Watch Movie (Projector + AVR)</option>
+                            <option value="tv">Watch TV (TV + AVR)</option>
+                            <option value="gaming">Gaming (Console + Display)</option>
+                            <option value="music">Listen to Music (AVR only)</option>
+                            <option value="custom">Custom Activity</option>
+                        </select>
+                    </div>
+
+                    <button class="btn" onclick="generateRemoteSequence()">Generate Sequence</button>
+
+                    <div id="remote-sequence-result" style="margin-top: 20px; display: none;">
+                        <h3>Startup Sequence</h3>
+                        <div id="startup-sequence" style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px; margin: 12px 0;"></div>
+
+                        <h3>Shutdown Sequence</h3>
+                        <div id="shutdown-sequence" style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px; margin: 12px 0;"></div>
+
+                        <h3>Sofabaton X1 Import</h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 12px;">Copy this sequence into Sofabaton app:</p>
+                        <div id="sofabaton-export" style="background: var(--bg-primary); padding: 16px; border-radius: 8px; font-family: monospace; font-size: 0.85em; white-space: pre-wrap;"></div>
+                        <button class="btn btn-secondary" onclick="copySofabatonSequence()" style="margin-top: 12px;">Copy to Clipboard</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Future Features Notice -->
+            <div class="card" style="border: 1px dashed var(--accent-blue); background: rgba(88, 166, 255, 0.05);">
+                <h2 style="color: var(--accent-blue);">&#128736; Coming Soon</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 12px;">
+                    Features in development:
+                </p>
+                <ul style="color: var(--text-secondary); margin-left: 20px;">
+                    <li><strong>Live Device Connection</strong> - Connect directly to HDMI processors via IP for real-time diagnostics</li>
+                    <li><strong>HDR Signal Chain Tracing</strong> - Trace HDR format through each device in your chain</li>
+                    <li><strong>Auto-Config Apply</strong> - Push optimized settings directly to compatible devices</li>
+                    <li><strong>Room Correction Import</strong> - Import YPAO/Audyssey measurements for analysis</li>
+                </ul>
             </div>
         </div>
 
@@ -4008,6 +4103,485 @@
                 alert('Error loading guide: ' + err.message);
             }
         }
+
+        // =================================================================
+        // Config Analyzer - Manual and Config File Uploads
+        // =================================================================
+
+        // Set up dropzones for the Config Analyzer tab
+        setupDropzone('manual-dropzone', 'manual-input', handleManualUpload);
+        setupDropzone('hdmi-config-dropzone', 'hdmi-config-input', handleHDMIConfigUpload);
+        setupDropzone('avr-config-dropzone', 'avr-config-input', handleAVRConfigUpload);
+        setupDropzone('media-config-dropzone', 'media-config-input', handleMediaConfigUpload);
+
+        // Store uploaded manuals
+        let uploadedManuals = [];
+
+        async function handleManualUpload(file) {
+            // Validate it's a PDF
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                alert('Please upload a PDF file');
+                return;
+            }
+
+            const manualsDiv = document.getElementById('uploaded-manuals');
+
+            // Add to list
+            uploadedManuals.push({
+                name: file.name,
+                size: file.size,
+                file: file
+            });
+
+            // Display uploaded manuals
+            manualsDiv.innerHTML = `
+                <h4 style="margin-bottom: 12px; color: var(--accent-green);">Uploaded Manuals</h4>
+                ${uploadedManuals.map((m, idx) => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 8px;">
+                        <div>
+                            <strong>${m.name}</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.85em; margin-left: 8px;">(${(m.size / 1024 / 1024).toFixed(2)} MB)</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary" onclick="analyzeManual(${idx})" style="padding: 6px 12px; font-size: 0.85em;">Analyze</button>
+                            <button class="btn btn-secondary" onclick="removeManual(${idx})" style="padding: 6px 12px; font-size: 0.85em; margin-left: 4px;">Remove</button>
+                        </div>
+                    </div>
+                `).join('')}
+                <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 12px;">
+                    Note: PDF analysis extracts text to find settings, menu paths, and optimal configurations. Large manuals may take a moment to process.
+                </p>
+            `;
+        }
+
+        function removeManual(idx) {
+            uploadedManuals.splice(idx, 1);
+            const manualsDiv = document.getElementById('uploaded-manuals');
+            if (uploadedManuals.length === 0) {
+                manualsDiv.innerHTML = '';
+            } else {
+                handleManualUpload.call(null, { name: '', size: 0 }); // Trigger re-render
+                // Re-render by calling the upload handler logic
+                const dummyEvent = uploadedManuals[0];
+                uploadedManuals.pop();
+                handleManualUpload(dummyEvent);
+            }
+        }
+
+        async function analyzeManual(idx) {
+            const manual = uploadedManuals[idx];
+            if (!manual) return;
+
+            // Show analyzing status
+            alert('Manual analysis is coming soon. For now, you can view your manual and reference our device-specific recommendations in the My Setup tab.');
+        }
+
+        // Config file upload handlers
+        async function handleHDMIConfigUpload(file) {
+            const resultsDiv = document.getElementById('config-analysis-results');
+            resultsDiv.innerHTML = '<p style="color: var(--accent-blue);">Analyzing HDMI processor config...</p>';
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('device_type', 'hdmi_processor');
+
+            try {
+                const response = await fetch('/api/analyze/config', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    resultsDiv.innerHTML = `<p style="color: var(--accent-red);">Error: ${data.error}</p>`;
+                    return;
+                }
+
+                displayConfigAnalysisResults(data, 'HDMI Processor');
+            } catch (err) {
+                resultsDiv.innerHTML = `<p style="color: var(--accent-red);">Error analyzing config: ${err.message}</p>`;
+            }
+        }
+
+        async function handleAVRConfigUpload(file) {
+            const resultsDiv = document.getElementById('config-analysis-results');
+            resultsDiv.innerHTML = '<p style="color: var(--accent-blue);">Analyzing AVR config...</p>';
+
+            // For now, show a message that AVR config analysis is coming soon
+            resultsDiv.innerHTML = `
+                <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 12px;">
+                    <h4 style="margin-bottom: 8px;">AVR Config: ${file.name}</h4>
+                    <p style="color: var(--text-secondary);">
+                        AVR configuration analysis is coming soon. We're working on parsers for:
+                    </p>
+                    <ul style="margin: 12px 0 0 20px; color: var(--text-secondary);">
+                        <li>Yamaha MusicCast/YPAO exports</li>
+                        <li>Denon/Marantz HEOS app settings</li>
+                        <li>Anthem ARC Genesis files</li>
+                    </ul>
+                    <p style="color: var(--accent-yellow); margin-top: 12px;">
+                        For now, use the "My Setup" tab to get AVR-specific recommendations based on your equipment.
+                    </p>
+                </div>
+            `;
+        }
+
+        async function handleMediaConfigUpload(file) {
+            const resultsDiv = document.getElementById('config-analysis-results');
+            resultsDiv.innerHTML = '<p style="color: var(--accent-blue);">Analyzing media server config...</p>';
+
+            // For now, show a message that media server config analysis is coming soon
+            resultsDiv.innerHTML = `
+                <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 12px;">
+                    <h4 style="margin-bottom: 8px;">Media Server Config: ${file.name}</h4>
+                    <p style="color: var(--text-secondary);">
+                        Media server configuration analysis is coming soon. We're working on parsers for:
+                    </p>
+                    <ul style="margin: 12px 0 0 20px; color: var(--text-secondary);">
+                        <li>Plex Preferences.xml</li>
+                        <li>Emby/Jellyfin system.xml</li>
+                        <li>Kodi advancedsettings.xml and guisettings.xml</li>
+                    </ul>
+                    <p style="color: var(--accent-yellow); margin-top: 12px;">
+                        For now, use the "Pre-roll Analyzer" tab to check video format compatibility with your media server.
+                    </p>
+                </div>
+            `;
+        }
+
+        function displayConfigAnalysisResults(data, deviceType) {
+            const resultsDiv = document.getElementById('config-analysis-results');
+
+            // Display analysis results
+            let html = `
+                <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 12px;">
+                    <h4 style="margin-bottom: 12px;">${deviceType} Analysis Results</h4>
+            `;
+
+            // Summary badges
+            html += `
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div style="padding: 8px 16px; background: var(--accent-red); border-radius: 4px; opacity: ${data.issue_count?.critical > 0 ? 1 : 0.3};">
+                        ${data.issue_count?.critical || 0} Critical
+                    </div>
+                    <div style="padding: 8px 16px; background: var(--accent-yellow); border-radius: 4px; opacity: ${data.issue_count?.warning > 0 ? 1 : 0.3};">
+                        ${data.issue_count?.warning || 0} Warnings
+                    </div>
+                    <div style="padding: 8px 16px; background: var(--accent-blue); border-radius: 4px; opacity: ${data.issue_count?.info > 0 ? 1 : 0.3};">
+                        ${data.issue_count?.info || 0} Info
+                    </div>
+                </div>
+            `;
+
+            // Issues
+            if (data.issues && data.issues.length > 0) {
+                html += data.issues.map(issue => `
+                    <div class="issue ${issue.severity}" style="margin-bottom: 8px;">
+                        <div class="issue-header">
+                            <span class="issue-badge">${issue.severity}</span>
+                            <span class="issue-title">${issue.title}</span>
+                        </div>
+                        <div class="issue-description">${issue.description}</div>
+                        ${issue.current_value !== undefined ? `
+                            <div style="margin-top: 8px; font-size: 0.9em;">
+                                <span style="color: var(--accent-red);">Current: ${issue.current_value}</span>
+                                <span style="margin: 0 8px;">→</span>
+                                <span style="color: var(--accent-green);">Recommended: ${issue.recommended_value}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } else {
+                html += '<p style="color: var(--accent-green);">No issues found! Your configuration looks good.</p>';
+            }
+
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+        }
+
+        // =================================================================
+        // Universal Remote Sequence Generator
+        // =================================================================
+
+        function generateRemoteSequence() {
+            const remoteType = document.getElementById('remote-type').value;
+            const activityType = document.getElementById('activity-type').value;
+            const resultsDiv = document.getElementById('remote-sequence-result');
+            const startupDiv = document.getElementById('startup-sequence');
+            const shutdownDiv = document.getElementById('shutdown-sequence');
+            const exportDiv = document.getElementById('sofabaton-export');
+
+            // Get equipment from setup
+            const setup = loadSetupFromStorage();
+            const display = setup.display || 'projector';
+            const avr = setup.avr || 'avr';
+            const sources = setup.sources || ['nvidia_shield'];
+            const hdfury = setup.hdfury_device || '';
+
+            // Define device names for display
+            const deviceNames = {
+                display: window.devicesData?.displays?.[display]?.name || 'Display',
+                avr: window.devicesData?.avrs?.[avr]?.name || 'AV Receiver',
+                source: sources.length > 0 ? (window.devicesData?.sources?.[sources[0]]?.name || 'Source Device') : 'Source Device',
+                hdfury: window.devicesData?.hdfury_devices?.[hdfury]?.name || ''
+            };
+
+            // Generate sequences based on activity
+            let startupSteps = [];
+            let shutdownSteps = [];
+            let sofabatonConfig = {};
+
+            switch (activityType) {
+                case 'movie':
+                    startupSteps = [
+                        { device: deviceNames.display, action: 'Power On', delay: 0, note: 'Projectors need longest warm-up time' },
+                        { device: deviceNames.avr, action: 'Power On', delay: 2000, note: 'Wait for display to initialize' },
+                        { device: deviceNames.avr, action: 'Set Input to HDMI', delay: 1000, note: 'Select correct HDMI input' },
+                        { device: deviceNames.source, action: 'Power On', delay: 3000, note: 'Wait for AVR to be ready' },
+                        { device: deviceNames.source, action: 'Launch Streaming App', delay: 5000, note: 'Optional: launch your preferred app' }
+                    ];
+                    if (deviceNames.hdfury) {
+                        startupSteps.splice(2, 0, { device: deviceNames.hdfury, action: 'Verify Signal', delay: 500, note: 'HDMI processor should auto-detect' });
+                    }
+                    shutdownSteps = [
+                        { device: deviceNames.source, action: 'Return to Home', delay: 0, note: 'Exit any apps first' },
+                        { device: deviceNames.source, action: 'Power Off', delay: 1000, note: 'Put in standby mode' },
+                        { device: deviceNames.avr, action: 'Power Off', delay: 2000, note: 'Turn off AVR' },
+                        { device: deviceNames.display, action: 'Power Off', delay: 2000, note: 'Turn off projector last' }
+                    ];
+                    break;
+
+                case 'tv':
+                    startupSteps = [
+                        { device: deviceNames.display, action: 'Power On', delay: 0, note: 'TV powers on quickly' },
+                        { device: deviceNames.avr, action: 'Power On', delay: 1000, note: '' },
+                        { device: deviceNames.avr, action: 'Set Input to TV/ARC', delay: 1000, note: 'Use eARC/ARC input' },
+                        { device: deviceNames.display, action: 'Open TV Guide', delay: 2000, note: 'Or launch Live TV app' }
+                    ];
+                    shutdownSteps = [
+                        { device: deviceNames.display, action: 'Power Off', delay: 0, note: 'CEC may turn off AVR automatically' },
+                        { device: deviceNames.avr, action: 'Power Off', delay: 2000, note: 'If not handled by CEC' }
+                    ];
+                    break;
+
+                case 'gaming':
+                    startupSteps = [
+                        { device: deviceNames.display, action: 'Power On', delay: 0, note: '' },
+                        { device: deviceNames.display, action: 'Enable Game Mode', delay: 1000, note: 'Reduces input lag' },
+                        { device: deviceNames.avr, action: 'Power On', delay: 500, note: '' },
+                        { device: deviceNames.avr, action: 'Set to Game input', delay: 1000, note: 'ALLM may handle this' },
+                        { device: deviceNames.source, action: 'Power On', delay: 1000, note: 'Console powers on' }
+                    ];
+                    shutdownSteps = [
+                        { device: deviceNames.source, action: 'Power Off', delay: 0, note: 'Hold power button or use menu' },
+                        { device: deviceNames.avr, action: 'Power Off', delay: 2000, note: '' },
+                        { device: deviceNames.display, action: 'Power Off', delay: 1000, note: '' }
+                    ];
+                    break;
+
+                case 'music':
+                    startupSteps = [
+                        { device: deviceNames.avr, action: 'Power On', delay: 0, note: '' },
+                        { device: deviceNames.avr, action: 'Set to Music Mode', delay: 1000, note: 'Pure Direct or Stereo mode' },
+                        { device: deviceNames.source, action: 'Power On', delay: 1500, note: '' },
+                        { device: deviceNames.source, action: 'Launch Music App', delay: 2000, note: 'Spotify, Tidal, etc.' }
+                    ];
+                    shutdownSteps = [
+                        { device: deviceNames.source, action: 'Power Off', delay: 0, note: '' },
+                        { device: deviceNames.avr, action: 'Power Off', delay: 1500, note: '' }
+                    ];
+                    break;
+
+                default: // custom
+                    startupSteps = [
+                        { device: deviceNames.display, action: 'Power On', delay: 0, note: '' },
+                        { device: deviceNames.avr, action: 'Power On', delay: 2000, note: '' },
+                        { device: deviceNames.source, action: 'Power On', delay: 2000, note: '' }
+                    ];
+                    shutdownSteps = [
+                        { device: deviceNames.source, action: 'Power Off', delay: 0, note: '' },
+                        { device: deviceNames.avr, action: 'Power Off', delay: 2000, note: '' },
+                        { device: deviceNames.display, action: 'Power Off', delay: 2000, note: '' }
+                    ];
+            }
+
+            // Render startup sequence
+            let stepNum = 1;
+            startupDiv.innerHTML = startupSteps.map(step => `
+                <div style="display: flex; align-items: center; margin-bottom: 8px; padding: 10px; background: var(--bg-primary); border-radius: 6px;">
+                    <div style="width: 28px; height: 28px; background: var(--accent-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-weight: bold; font-size: 0.9em;">
+                        ${stepNum++}
+                    </div>
+                    <div style="flex: 1;">
+                        <strong>${step.device}</strong>: ${step.action}
+                        ${step.note ? `<div style="color: var(--text-secondary); font-size: 0.85em;">${step.note}</div>` : ''}
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 0.85em;">
+                        ${step.delay > 0 ? `+${step.delay / 1000}s delay` : 'Start'}
+                    </div>
+                </div>
+            `).join('');
+
+            // Render shutdown sequence
+            stepNum = 1;
+            shutdownDiv.innerHTML = shutdownSteps.map(step => `
+                <div style="display: flex; align-items: center; margin-bottom: 8px; padding: 10px; background: var(--bg-primary); border-radius: 6px;">
+                    <div style="width: 28px; height: 28px; background: var(--accent-red); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-weight: bold; font-size: 0.9em;">
+                        ${stepNum++}
+                    </div>
+                    <div style="flex: 1;">
+                        <strong>${step.device}</strong>: ${step.action}
+                        ${step.note ? `<div style="color: var(--text-secondary); font-size: 0.85em;">${step.note}</div>` : ''}
+                    </div>
+                    <div style="color: var(--text-secondary); font-size: 0.85em;">
+                        ${step.delay > 0 ? `+${step.delay / 1000}s delay` : 'Start'}
+                    </div>
+                </div>
+            `).join('');
+
+            // Generate Sofabaton X1 compatible export format
+            const sofabatonSequence = {
+                activity: activityType.charAt(0).toUpperCase() + activityType.slice(1),
+                startup: startupSteps.map(s => ({
+                    device: s.device,
+                    command: s.action.replace(/ /g, '_').toUpperCase(),
+                    delay_ms: s.delay
+                })),
+                shutdown: shutdownSteps.map(s => ({
+                    device: s.device,
+                    command: s.action.replace(/ /g, '_').toUpperCase(),
+                    delay_ms: s.delay
+                }))
+            };
+
+            // Sofabaton X1 specific format
+            let sofabatonText = `# Sofabaton X1 Activity: ${sofabatonSequence.activity}\n`;
+            sofabatonText += `# Generated by AV Signal Lab\n\n`;
+            sofabatonText += `[STARTUP]\n`;
+            sofabatonSequence.startup.forEach((step, idx) => {
+                sofabatonText += `${idx + 1}. ${step.device} > ${step.command}`;
+                if (step.delay_ms > 0) sofabatonText += ` (delay: ${step.delay_ms}ms)`;
+                sofabatonText += `\n`;
+            });
+            sofabatonText += `\n[SHUTDOWN]\n`;
+            sofabatonSequence.shutdown.forEach((step, idx) => {
+                sofabatonText += `${idx + 1}. ${step.device} > ${step.command}`;
+                if (step.delay_ms > 0) sofabatonText += ` (delay: ${step.delay_ms}ms)`;
+                sofabatonText += `\n`;
+            });
+            sofabatonText += `\n# Instructions:\n`;
+            sofabatonText += `# 1. Open Sofabaton app and go to Activities\n`;
+            sofabatonText += `# 2. Create new activity: "${sofabatonSequence.activity}"\n`;
+            sofabatonText += `# 3. Add devices and set power on/off sequences\n`;
+            sofabatonText += `# 4. Configure delays between commands as shown above\n`;
+
+            exportDiv.textContent = sofabatonText;
+            resultsDiv.style.display = 'block';
+        }
+
+        function copySofabatonSequence() {
+            const exportDiv = document.getElementById('sofabaton-export');
+            navigator.clipboard.writeText(exportDiv.textContent).then(() => {
+                const btn = document.querySelector('#remote-sequence-result .btn-secondary');
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy to Clipboard', 2000);
+            });
+        }
+
+        // =================================================================
+        // Cable Recommendations Based on Setup
+        // =================================================================
+        function updateCableRecommendations() {
+            const setup = loadSetupFromStorage();
+            const recsDiv = document.getElementById('cable-recs-dynamic');
+
+            if (!setup.display && !setup.avr && !setup.hdfury_device) {
+                recsDiv.innerHTML = '<p style="color: var(--text-secondary);">Select your equipment in "My Setup" tab to get personalized cable recommendations.</p>';
+                return;
+            }
+
+            let recommendations = [];
+            const deviceData = window.devicesData || {};
+
+            // Check display requirements
+            if (setup.display && deviceData.displays?.[setup.display]) {
+                const display = deviceData.displays[setup.display];
+                if (display.max_refresh >= 120 || display.vrr_support) {
+                    recommendations.push({
+                        connection: 'Source to HDMI Processor / AVR',
+                        cable: 'Ultra High Speed HDMI (48Gbps)',
+                        reason: `Your ${display.name} supports ${display.max_refresh}Hz${display.vrr_support ? ' with VRR' : ''} - requires full HDMI 2.1 bandwidth`,
+                        brand: 'Zeskit Maya or Monoprice 8K Certified'
+                    });
+                }
+                if (display.type === 'projector') {
+                    recommendations.push({
+                        connection: 'HDMI Processor to Projector',
+                        cable: 'Fiber Optic HDMI (48Gbps)',
+                        reason: 'Projector installations typically need longer cable runs (10m+)',
+                        brand: 'RUIPRO 8K or Monoprice SlimRun AV'
+                    });
+                }
+            }
+
+            // Check AVR requirements
+            if (setup.avr && deviceData.avrs?.[setup.avr]) {
+                const avr = deviceData.avrs[setup.avr];
+                if (avr.earc_support) {
+                    recommendations.push({
+                        connection: 'Display to AVR (eARC)',
+                        cable: 'Ultra High Speed HDMI (48Gbps)',
+                        reason: 'eARC requires high bandwidth for lossless audio formats',
+                        brand: 'Zeskit 8K or Cable Matters 48Gbps'
+                    });
+                }
+            }
+
+            // Check HDMI processor
+            if (setup.hdfury_device && deviceData.hdfury_devices?.[setup.hdfury_device]) {
+                const hdfury = deviceData.hdfury_devices[setup.hdfury_device];
+                recommendations.push({
+                    connection: 'Source to ' + hdfury.name,
+                    cable: 'Ultra High Speed HDMI (48Gbps)',
+                    reason: 'Ensure full signal passthrough capabilities',
+                    brand: 'Short run (under 3m): Zeskit Maya. Longer: RUIPRO Fiber'
+                });
+            }
+
+            if (recommendations.length === 0) {
+                recommendations.push({
+                    connection: 'General Setup',
+                    cable: 'Premium High Speed HDMI (18Gbps)',
+                    reason: 'Sufficient for 4K@60Hz HDR content',
+                    brand: 'Monoprice Certified Premium or AmazonBasics Premium'
+                });
+            }
+
+            recsDiv.innerHTML = recommendations.map(rec => `
+                <div style="padding: 12px; background: var(--bg-tertiary); border-radius: 8px; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <strong style="color: var(--accent-blue);">${rec.connection}</strong>
+                        <span style="color: var(--accent-green);">${rec.cable}</span>
+                    </div>
+                    <p style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 4px;">${rec.reason}</p>
+                    <p style="font-size: 0.85em;"><strong>Recommended:</strong> ${rec.brand}</p>
+                </div>
+            `).join('');
+        }
+
+        // Update cable recommendations when devices load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for device data periodically until loaded
+            const checkDevices = setInterval(function() {
+                if (window.devicesData) {
+                    clearInterval(checkDevices);
+                    updateCableRecommendations();
+                }
+            }, 500);
+
+            // Stop checking after 10 seconds
+            setTimeout(() => clearInterval(checkDevices), 10000);
+        });
 
         // =================================================================
         // Initialize
