@@ -4226,13 +4226,36 @@
             if (!resultsDiv) return;
 
             if (data.error) {
-                resultsDiv.innerHTML = `
-                    <div style="padding: 16px; background: var(--bg-primary); border: 1px solid var(--accent-red); border-radius: 8px; margin-top: 16px;">
-                        <h4 style="color: var(--accent-red); margin-bottom: 8px;">Analysis Error</h4>
-                        <p style="color: var(--text-secondary);">${data.error}</p>
-                        ${data.page_count ? `<p style="color: var(--text-secondary); font-size: 0.85em;">Pages detected: ${data.page_count}</p>` : ''}
-                    </div>
-                `;
+                // Check if this is the PDF support not available error
+                if (data.pdf_support === false) {
+                    let installHtml = '';
+                    if (data.install_instructions) {
+                        installHtml = `
+                            <h4 style="margin: 12px 0 8px;">Installation Instructions</h4>
+                            <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 0.9em;">
+                                <p><strong>Windows (x64):</strong> ${data.install_instructions.windows_x64 || 'pip install PyMuPDF'}</p>
+                                <p style="margin-top: 8px;"><strong>Windows (ARM64):</strong> ${data.install_instructions.windows_arm64 || 'pip install PyMuPDF'}</p>
+                                <p style="margin-top: 8px;"><strong>Linux/macOS:</strong> ${data.install_instructions.linux || 'pip install PyMuPDF'}</p>
+                            </div>
+                        `;
+                    }
+                    resultsDiv.innerHTML = `
+                        <div style="padding: 16px; background: var(--bg-primary); border: 1px solid var(--accent-yellow); border-radius: 8px; margin-top: 16px;">
+                            <h4 style="color: var(--accent-yellow); margin-bottom: 8px;">&#9888; PDF Support Not Available</h4>
+                            <p style="color: var(--text-secondary);">${data.details || data.error}</p>
+                            ${installHtml}
+                            <p style="color: var(--accent-green); margin-top: 12px; font-weight: bold;">${data.alternatives || ''}</p>
+                        </div>
+                    `;
+                } else {
+                    resultsDiv.innerHTML = `
+                        <div style="padding: 16px; background: var(--bg-primary); border: 1px solid var(--accent-red); border-radius: 8px; margin-top: 16px;">
+                            <h4 style="color: var(--accent-red); margin-bottom: 8px;">Analysis Error</h4>
+                            <p style="color: var(--text-secondary);">${data.error}</p>
+                            ${data.page_count ? `<p style="color: var(--text-secondary); font-size: 0.85em;">Pages detected: ${data.page_count}</p>` : ''}
+                        </div>
+                    `;
+                }
                 return;
             }
 
@@ -4844,6 +4867,36 @@
         loadGoals();
         loadEdidPresets();
         loadCustomDevices();
+        checkPDFSupport();
+
+        // Check PDF support and update UI accordingly
+        async function checkPDFSupport() {
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+
+                const manualDropzone = document.getElementById('manual-dropzone');
+                if (!manualDropzone) return;
+
+                if (!data.pdf_support) {
+                    // Show warning that PDF support is not available
+                    const warningDiv = document.createElement('div');
+                    warningDiv.style.cssText = 'margin-top: 12px; padding: 12px; background: rgba(255, 183, 77, 0.1); border: 1px solid var(--accent-yellow); border-radius: 6px;';
+                    warningDiv.innerHTML = `
+                        <p style="color: var(--accent-yellow); margin: 0; font-size: 0.9em;">
+                            <strong>&#9888; PDF Analysis Unavailable</strong><br>
+                            <span style="color: var(--text-secondary);">PyMuPDF is not installed. AVR and Media Server config analyzers still work.</span>
+                        </p>
+                    `;
+                    manualDropzone.parentNode.insertBefore(warningDiv, manualDropzone.nextSibling);
+
+                    // Dim the dropzone slightly
+                    manualDropzone.style.opacity = '0.6';
+                }
+            } catch (err) {
+                console.log('Health check failed:', err);
+            }
+        }
     </script>
 </body>
 </html>
