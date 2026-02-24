@@ -14,8 +14,14 @@ import sqlite3
 import subprocess
 import shutil
 import uuid
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from flask import Flask, request, jsonify, render_template, send_file, g
+try:
+    import fitz as pymupdf  # PyMuPDF
+    PDF_SUPPORT = True
+except ImportError:
+    PDF_SUPPORT = False
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max upload
@@ -4920,6 +4926,1062 @@ class PrerollAnalyzer:
 
 
 # =============================================================================
+# Device Manual PDF Analyzer
+# =============================================================================
+
+class ManualAnalyzer:
+    """Extracts settings, menu paths, and configurations from device manuals (PDF)."""
+
+    # Patterns to identify different types of settings in manual text
+    HDMI_PATTERNS = [
+        (r'HDMI\s*(?:Input|Output|Port)\s*[\d]+', 'HDMI Port Assignment'),
+        (r'(?:4K|8K)\s*(?:@|at)\s*(?:60|120)\s*Hz', 'Resolution/Refresh Support'),
+        (r'(?:HDR10\+?|Dolby\s*Vision|HLG|HDR)', 'HDR Format Support'),
+        (r'(?:eARC|ARC|EARC)', 'Audio Return Channel'),
+        (r'(?:VRR|ALLM|QMS|QFT)', 'HDMI 2\.1 Gaming Features'),
+        (r'(?:CEC|HDMI\s*Control|Anynet|Bravia\s*Sync|SIMPLINK)', 'CEC/Device Control'),
+        (r'(?:HDCP)\s*(?:2\.[23]|1\.4)', 'HDCP Version'),
+        (r'(?:Deep\s*Color|Deep\s*Colour)', 'Deep Color'),
+        (r'(?:FRL|TMDS)', 'Link Protocol'),
+        (r'(?:EDID|Extended\s*Display)', 'EDID Management'),
+    ]
+
+    AUDIO_PATTERNS = [
+        (r'(?:Dolby\s*Atmos|DTS:?\s*X|Auro[\s-]*3D)', 'Immersive Audio Format'),
+        (r'(?:Dolby\s*(?:TrueHD|Digital\+?)|DTS[\s-]*(?:HD\s*MA|HD))', 'Lossless Audio'),
+        (r'(?:PCM|LPCM|Multichannel\s*PCM)', 'PCM Audio'),
+        (r'(?:crossover|x-?over)\s*(?:frequency|freq)?\s*[\d]+\s*Hz', 'Crossover Frequency'),
+        (r'(?:speaker|channel)\s*(?:config|configuration|layout|setup)', 'Speaker Configuration'),
+        (r'(?:lip\s*sync|audio\s*delay|a/?v\s*sync)', 'Audio/Video Sync'),
+        (r'(?:YPAO|Audyssey|MCACC|Dirac|ARC\s*Genesis|AccuEQ)', 'Room Correction'),
+        (r'(?:bi[\s-]*amp|bi[\s-]*wire)', 'Bi-Amp/Wire'),
+        (r'(?:Zone\s*[2-4]|multi[\s-]*zone)', 'Multi-Zone Audio'),
+    ]
+
+    VIDEO_PATTERNS = [
+        (r'(?:picture\s*mode|image\s*mode|preset)', 'Picture Mode'),
+        (r'(?:color\s*space|colour\s*space|BT\.?2020|BT\.?709|P3)', 'Color Space'),
+        (r'(?:tone\s*map|tone[\s-]*mapping|dynamic\s*tone)', 'Tone Mapping'),
+        (r'(?:game\s*mode|low\s*latency\s*mode)', 'Game/Low Latency Mode'),
+        (r'(?:motion\s*(?:interpolation|smoothing|enhancement))', 'Motion Processing'),
+        (r'(?:input\s*lag|response\s*time)', 'Input Lag'),
+        (r'(?:lens\s*(?:shift|memory|zoom))', 'Lens Settings'),
+        (r'(?:keystone|lens\s*correction)', 'Keystone Correction'),
+        (r'(?:aspect\s*ratio|screen\s*size)', 'Aspect Ratio'),
+    ]
+
+    NETWORK_PATTERNS = [
+        (r'(?:IP\s*address|DHCP|static\s*IP)', 'Network Configuration'),
+        (r'(?:firmware\s*(?:update|upgrade|version))', 'Firmware'),
+        (r'(?:Wi[\s-]*Fi|wireless|Ethernet)', 'Connectivity'),
+        (r'(?:RS[\s-]*232|serial\s*(?:port|control))', 'Serial Control'),
+        (r'(?:IR\s*(?:code|command|remote))', 'IR Control'),
+    ]
+
+    def __init__(self, pdf_file_path):
+        self.file_path = pdf_file_path
+        self.text = ""
+        self.pages = []
+
+    def extract_text(self):
+        """Extract text from all pages of the PDF."""
+        if not PDF_SUPPORT:
+            return "PDF support not available. Install PyMuPDF: pip install PyMuPDF"
+        try:
+            doc = pymupdf.open(self.file_path)
+            self.pages = []
+            for i, page in enumerate(doc):
+                page_text = page.get_text()
+                self.pages.append({
+                    "page_number": i + 1,
+                    "text": page_text
+                })
+            doc.close()
+            self.text = "\n\n".join(p["text"] for p in self.pages)
+            return True
+        except Exception as e:
+            return str(e)
+
+    def analyze(self):
+        """Analyze extracted text for settings and configurations."""
+        result = self.extract_text()
+        if result is not True:
+            return {"error": f"Failed to read PDF: {result}"}
+
+        if not self.text.strip():
+            return {
+                "error": "No text could be extracted from this PDF. The file may be image-based (scanned). Try a text-based PDF.",
+                "page_count": len(self.pages)
+            }
+
+        analysis = {
+            "page_count": len(self.pages),
+            "total_characters": len(self.text),
+            "device_type": self._detect_device_type(),
+            "manufacturer": self._detect_manufacturer(),
+            "model": self._detect_model(),
+            "sections": {
+                "hdmi": self._find_settings(self.HDMI_PATTERNS, "HDMI & Video I/O"),
+                "audio": self._find_settings(self.AUDIO_PATTERNS, "Audio"),
+                "video": self._find_settings(self.VIDEO_PATTERNS, "Video/Display"),
+                "network": self._find_settings(self.NETWORK_PATTERNS, "Network & Control"),
+            },
+            "menu_paths": self._extract_menu_paths(),
+            "recommended_settings": [],
+            "raw_matches_count": 0,
+        }
+
+        # Count total matches
+        total = 0
+        for section in analysis["sections"].values():
+            total += len(section.get("findings", []))
+        analysis["raw_matches_count"] = total
+
+        # Generate recommendations based on device type and found settings
+        analysis["recommended_settings"] = self._generate_recommendations(analysis)
+
+        return analysis
+
+    def _detect_device_type(self):
+        """Try to detect what kind of device this manual is for."""
+        text_lower = self.text.lower()
+        scores = {
+            "projector": 0,
+            "tv": 0,
+            "avr": 0,
+            "hdmi_processor": 0,
+            "media_player": 0,
+        }
+
+        projector_terms = ["projector", "throw distance", "lens shift", "screen size", "lumens", "lamp", "laser light", "keystone"]
+        tv_terms = ["oled", "qled", "lcd panel", "led panel", "wall mount", "stand assembly", "tv stand"]
+        avr_terms = ["receiver", "amplifier", "surround sound", "speaker setup", "crossover", "room correction", "ypao", "audyssey"]
+        hdmi_terms = ["hdmi matrix", "hdmi splitter", "edid", "signal routing", "hdfury", "vertex", "vrroom", "lldv"]
+        player_terms = ["streaming", "media player", "nvidia shield", "apple tv", "chromecast", "roku"]
+
+        for term in projector_terms:
+            if term in text_lower:
+                scores["projector"] += 1
+        for term in tv_terms:
+            if term in text_lower:
+                scores["tv"] += 1
+        for term in avr_terms:
+            if term in text_lower:
+                scores["avr"] += 1
+        for term in hdmi_terms:
+            if term in text_lower:
+                scores["hdmi_processor"] += 1
+        for term in player_terms:
+            if term in text_lower:
+                scores["media_player"] += 1
+
+        best = max(scores, key=scores.get)
+        return best if scores[best] > 0 else "unknown"
+
+    def _detect_manufacturer(self):
+        """Try to detect manufacturer from the manual text."""
+        text_lower = self.text[:5000].lower()  # Check first ~5000 chars
+        manufacturers = {
+            "Epson": ["epson", "seiko epson"],
+            "Sony": ["sony corporation", "sony group"],
+            "JVC": ["jvc", "jvckenwood"],
+            "BenQ": ["benq"],
+            "LG": ["lg electronics"],
+            "Samsung": ["samsung"],
+            "Yamaha": ["yamaha corporation", "yamaha"],
+            "Denon": ["denon", "d&m holdings"],
+            "Marantz": ["marantz"],
+            "Onkyo": ["onkyo"],
+            "Pioneer": ["pioneer"],
+            "Anthem": ["anthem"],
+            "HDFury": ["hdfury", "hd fury"],
+            "Nvidia": ["nvidia"],
+            "Apple": ["apple inc"],
+        }
+        for mfg, terms in manufacturers.items():
+            for term in terms:
+                if term in text_lower:
+                    return mfg
+        return "Unknown"
+
+    def _detect_model(self):
+        """Try to extract model number from the manual."""
+        # Common model patterns
+        patterns = [
+            r'(?:Model|Model\s*(?:No|Number|Name))[\s:]+([A-Z0-9][\w\-/]+)',
+            r'(?:EH|EB|TW|VPL|DLA|LK|LS|HT|HW|NX)[\s\-]?\w{3,10}',  # Projector models
+            r'(?:RX|AVR|NR|SR|CXR|TX|VSX)[\s\-]?\w{3,10}',  # AVR models
+            r'(?:XN|OLED|QN|KD|XBR)\w{2,10}',  # TV models
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, self.text[:5000], re.IGNORECASE)
+            if match:
+                return match.group(0).strip()
+        return "Unknown"
+
+    def _find_settings(self, patterns, category_name):
+        """Search text for settings matching the given patterns."""
+        findings = []
+        seen_contexts = set()
+
+        for pattern, setting_name in patterns:
+            matches = list(re.finditer(pattern, self.text, re.IGNORECASE))
+            for match in matches:
+                # Get surrounding context (100 chars before and after)
+                start = max(0, match.start() - 100)
+                end = min(len(self.text), match.end() + 100)
+                context = self.text[start:end].strip()
+                # Clean up context
+                context = re.sub(r'\s+', ' ', context)
+
+                # Deduplicate similar contexts
+                context_key = f"{setting_name}:{context[:50]}"
+                if context_key in seen_contexts:
+                    continue
+                seen_contexts.add(context_key)
+
+                # Find which page this is on
+                page_num = self._find_page_for_position(match.start())
+
+                findings.append({
+                    "setting": setting_name,
+                    "matched_text": match.group(0),
+                    "context": context,
+                    "page": page_num,
+                })
+
+                # Limit findings per pattern to avoid overwhelming results
+                if len([f for f in findings if f["setting"] == setting_name]) >= 5:
+                    break
+
+        return {
+            "category": category_name,
+            "findings": findings,
+            "count": len(findings),
+        }
+
+    def _find_page_for_position(self, pos):
+        """Find which page a text position falls on."""
+        current_pos = 0
+        for page in self.pages:
+            page_len = len(page["text"]) + 2  # +2 for the \n\n separator
+            if current_pos + page_len > pos:
+                return page["page_number"]
+            current_pos += page_len
+        return len(self.pages)
+
+    def _extract_menu_paths(self):
+        """Extract menu navigation paths from the manual."""
+        paths = []
+        seen = set()
+
+        # Common menu path patterns
+        menu_patterns = [
+            r'(?:Menu|Settings|Setup)\s*[>→►▶»\-]\s*[\w\s]+(?:\s*[>→►▶»\-]\s*[\w\s]+){1,4}',
+            r'(?:Home|Main)\s*[>→►▶»\-]\s*[\w\s]+(?:\s*[>→►▶»\-]\s*[\w\s]+){1,4}',
+        ]
+
+        for pattern in menu_patterns:
+            matches = re.finditer(pattern, self.text, re.IGNORECASE)
+            for match in matches:
+                path = match.group(0).strip()
+                path = re.sub(r'\s+', ' ', path)
+                path_key = path.lower()
+                if path_key not in seen and len(path) > 10:
+                    seen.add(path_key)
+                    page_num = self._find_page_for_position(match.start())
+                    paths.append({
+                        "path": path,
+                        "page": page_num,
+                    })
+                    if len(paths) >= 30:
+                        break
+
+        return paths
+
+    def _generate_recommendations(self, analysis):
+        """Generate setting recommendations based on device type and findings."""
+        recs = []
+        device_type = analysis["device_type"]
+        sections = analysis["sections"]
+
+        # HDMI recommendations
+        hdmi_findings = [f["setting"] for f in sections["hdmi"].get("findings", [])]
+
+        if "HDR Format Support" in hdmi_findings:
+            recs.append({
+                "severity": "info",
+                "title": "HDR Support Detected",
+                "description": "This device supports HDR. Ensure HDR is enabled in the device settings and all HDMI cables support the required bandwidth.",
+                "category": "hdmi"
+            })
+
+        if "eARC" in " ".join(hdmi_findings).lower() or "Audio Return Channel" in hdmi_findings:
+            recs.append({
+                "severity": "info",
+                "title": "eARC/ARC Support Detected",
+                "description": "This device supports eARC/ARC. Use the eARC-designated HDMI port and enable eARC in both this device and your AVR for lossless audio return.",
+                "category": "audio"
+            })
+
+        if "HDMI 2.1 Gaming Features" in hdmi_findings:
+            recs.append({
+                "severity": "info",
+                "title": "HDMI 2.1 Gaming Features",
+                "description": "VRR/ALLM/QMS support detected. Enable these features for smoother gaming and reduced input lag. QMS eliminates format-switch blackouts (bonk).",
+                "category": "hdmi"
+            })
+
+        if "CEC/Device Control" in hdmi_findings:
+            recs.append({
+                "severity": "warning",
+                "title": "CEC Available - Configure Carefully",
+                "description": "CEC can cause unexpected power on/off behaviour with HDMI processors. If using an HDFury device, consider disabling CEC or using selective CEC passthrough.",
+                "category": "hdmi"
+            })
+
+        # Device-specific recommendations
+        if device_type == "projector":
+            recs.append({
+                "severity": "info",
+                "title": "Projector Detected",
+                "description": "For projectors, use a Fiber Optic HDMI cable for runs over 5 metres. Set picture mode to 'Cinema' or 'Natural' for best colour accuracy with HDR content.",
+                "category": "video"
+            })
+            if "Lens Settings" in [f["setting"] for f in sections["video"].get("findings", [])]:
+                recs.append({
+                    "severity": "info",
+                    "title": "Lens Memory Available",
+                    "description": "Use lens memory presets to store different aspect ratio configurations (16:9, 2.35:1 scope). This allows switching between formats without manual adjustment.",
+                    "category": "video"
+                })
+
+        elif device_type == "avr":
+            recs.append({
+                "severity": "warning",
+                "title": "AVR HDMI Passthrough",
+                "description": "Many AVRs add processing delay to HDMI signals. For minimum bonk, route video through an HDMI processor (HDFury) before the AVR, and use eARC for audio return.",
+                "category": "hdmi"
+            })
+            audio_findings = [f["setting"] for f in sections["audio"].get("findings", [])]
+            if "Room Correction" in audio_findings:
+                recs.append({
+                    "severity": "info",
+                    "title": "Room Correction System Detected",
+                    "description": "Run room correction after any speaker position changes. Check the Speaker Tuning tab for step-by-step guides specific to your system.",
+                    "category": "audio"
+                })
+
+        elif device_type == "tv":
+            recs.append({
+                "severity": "info",
+                "title": "TV Detected",
+                "description": "Enable HDMI Enhanced Signal (or equivalent) on all HDMI ports you use for 4K HDR. The setting name varies by manufacturer.",
+                "category": "hdmi"
+            })
+
+        return recs
+
+
+# =============================================================================
+# AVR Config File Analyzer
+# =============================================================================
+
+class AVRConfigAnalyzer:
+    """Analyzes AV Receiver configuration files for optimal settings."""
+
+    SEVERITY_CRITICAL = "critical"
+    SEVERITY_WARNING = "warning"
+    SEVERITY_INFO = "info"
+
+    def __init__(self, content, filename=""):
+        self.content = content
+        self.filename = filename.lower()
+        self.issues = []
+        self.settings_found = []
+        self.parsed = {}
+
+    def analyze(self):
+        """Analyze the config file and return results."""
+        self.issues = []
+        self.settings_found = []
+
+        # Detect format and parse
+        if self.filename.endswith('.xml'):
+            self._parse_xml()
+        elif self.filename.endswith('.json'):
+            self._parse_json()
+        else:
+            self._parse_generic_text()
+
+        # Run analysis checks
+        self._check_hdmi_settings()
+        self._check_speaker_settings()
+        self._check_audio_processing()
+        self._check_video_settings()
+        self._check_network_settings()
+
+        return {
+            "device_type": "avr",
+            "format_detected": self._detect_format(),
+            "settings_found": self.settings_found,
+            "issues": self.issues,
+            "issue_count": {
+                "critical": len([i for i in self.issues if i["severity"] == self.SEVERITY_CRITICAL]),
+                "warning": len([i for i in self.issues if i["severity"] == self.SEVERITY_WARNING]),
+                "info": len([i for i in self.issues if i["severity"] == self.SEVERITY_INFO]),
+            },
+            "recommendations": self._generate_recommendations(),
+        }
+
+    def _detect_format(self):
+        """Detect the AVR config format/manufacturer."""
+        text = self.content[:2000].lower() if isinstance(self.content, str) else ""
+        if "yamaha" in text or "ypao" in text or "musiccast" in text:
+            return "Yamaha"
+        elif "denon" in text or "heos" in text:
+            return "Denon"
+        elif "marantz" in text:
+            return "Marantz"
+        elif "onkyo" in text or "accueq" in text:
+            return "Onkyo"
+        elif "pioneer" in text:
+            return "Pioneer"
+        elif "anthem" in text or "arc genesis" in text:
+            return "Anthem"
+        return "Unknown"
+
+    def _parse_xml(self):
+        """Parse XML config file."""
+        try:
+            root = ET.fromstring(self.content)
+            self._walk_xml(root, "")
+        except ET.ParseError:
+            # Try as text if XML parsing fails
+            self._parse_generic_text()
+
+    def _walk_xml(self, element, path):
+        """Recursively walk XML tree and extract settings."""
+        tag = element.tag
+        current_path = f"{path} > {tag}" if path else tag
+
+        if element.text and element.text.strip():
+            value = element.text.strip()
+            self.parsed[current_path] = value
+            self._categorize_setting(current_path, value)
+
+        for attr_name, attr_value in element.attrib.items():
+            self.parsed[f"{current_path}@{attr_name}"] = attr_value
+
+        for child in element:
+            self._walk_xml(child, current_path)
+
+    def _parse_json(self):
+        """Parse JSON config file."""
+        try:
+            data = json.loads(self.content)
+            self._walk_json(data, "")
+        except json.JSONDecodeError:
+            self._parse_generic_text()
+
+    def _walk_json(self, obj, path):
+        """Recursively walk JSON and extract settings."""
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                current_path = f"{path} > {key}" if path else key
+                if isinstance(value, (str, int, float, bool)):
+                    self.parsed[current_path] = str(value)
+                    self._categorize_setting(current_path, str(value))
+                else:
+                    self._walk_json(value, current_path)
+        elif isinstance(obj, list):
+            for i, item in enumerate(obj):
+                self._walk_json(item, f"{path}[{i}]")
+
+    def _parse_generic_text(self):
+        """Parse as generic text/key-value file."""
+        lines = self.content.split('\n') if isinstance(self.content, str) else []
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith('#') or line.startswith('//'):
+                continue
+            # Try key=value, key:value, key\tvalue patterns
+            for sep in ['=', ':', '\t']:
+                if sep in line:
+                    parts = line.split(sep, 1)
+                    if len(parts) == 2:
+                        key = parts[0].strip()
+                        value = parts[1].strip()
+                        if key and value:
+                            self.parsed[key] = value
+                            self._categorize_setting(key, value)
+                    break
+
+    def _categorize_setting(self, path, value):
+        """Categorize a found setting by type."""
+        path_lower = path.lower()
+        categories = {
+            "hdmi": ["hdmi", "input", "output", "earc", "arc", "cec", "hdcp", "4k signal", "enhanced"],
+            "speaker": ["speaker", "crossover", "distance", "level", "channel", "subwoofer", "surround", "center", "height", "atmos"],
+            "audio": ["audio", "sound", "mode", "decoder", "dolby", "dts", "pcm", "bitstream", "passthrough", "dialogue", "volume", "dynamic"],
+            "video": ["video", "resolution", "hdr", "picture", "aspect", "color", "display"],
+            "network": ["network", "ip", "dhcp", "wifi", "ethernet", "port", "firmware"],
+            "room_correction": ["ypao", "audyssey", "mcacc", "dirac", "accueq", "correction", "calibration", "eq"],
+        }
+
+        matched_category = "other"
+        for cat, keywords in categories.items():
+            if any(kw in path_lower for kw in keywords):
+                matched_category = cat
+                break
+
+        self.settings_found.append({
+            "path": path,
+            "value": value,
+            "category": matched_category,
+        })
+
+    def _check_hdmi_settings(self):
+        """Check HDMI-related settings for issues."""
+        for setting in self.settings_found:
+            if setting["category"] != "hdmi":
+                continue
+            path_lower = setting["path"].lower()
+            value_lower = setting["value"].lower()
+
+            # Check for 4K signal format
+            if ("4k" in path_lower or "enhanced" in path_lower or "signal format" in path_lower):
+                if value_lower in ["standard", "off", "disabled", "mode 1"]:
+                    self.issues.append({
+                        "severity": self.SEVERITY_CRITICAL,
+                        "title": "4K Enhanced Signal Disabled",
+                        "description": f"'{setting['path']}' is set to '{setting['value']}'. This limits HDMI bandwidth and prevents HDR/DV passthrough. Set to Enhanced or Mode 2.",
+                        "current_value": setting["value"],
+                        "recommended_value": "Enhanced / Mode 2",
+                    })
+
+            # Check CEC
+            if "cec" in path_lower or "hdmi control" in path_lower:
+                if value_lower in ["on", "enabled", "true", "1"]:
+                    self.issues.append({
+                        "severity": self.SEVERITY_WARNING,
+                        "title": "CEC Enabled on AVR",
+                        "description": f"CEC ({setting['path']}) is enabled. This can cause unexpected power/input switching conflicts with HDMI processors. Consider disabling if you have an HDFury device.",
+                        "current_value": setting["value"],
+                        "recommended_value": "Off (if using HDMI processor)",
+                    })
+
+            # Check eARC
+            if "earc" in path_lower:
+                if value_lower in ["off", "disabled", "false", "0"]:
+                    self.issues.append({
+                        "severity": self.SEVERITY_WARNING,
+                        "title": "eARC Disabled",
+                        "description": "eARC is disabled. Enable it for lossless audio formats (Dolby TrueHD, DTS-HD MA, Atmos) from your display or HDMI processor.",
+                        "current_value": setting["value"],
+                        "recommended_value": "On",
+                    })
+
+    def _check_speaker_settings(self):
+        """Check speaker configuration settings."""
+        for setting in self.settings_found:
+            if setting["category"] != "speaker":
+                continue
+            path_lower = setting["path"].lower()
+            value_lower = setting["value"].lower()
+
+            # Check crossover settings
+            if "crossover" in path_lower:
+                try:
+                    freq = int(re.search(r'\d+', setting["value"]).group())
+                    if freq < 40:
+                        self.issues.append({
+                            "severity": self.SEVERITY_WARNING,
+                            "title": "Very Low Crossover Frequency",
+                            "description": f"Crossover at {freq}Hz is very low. Most speakers perform best with crossover at 80Hz (THX recommendation). Low crossover can strain speakers and miss subwoofer integration.",
+                            "current_value": f"{freq}Hz",
+                            "recommended_value": "80Hz (THX standard)",
+                        })
+                    elif freq > 150:
+                        self.issues.append({
+                            "severity": self.SEVERITY_INFO,
+                            "title": "High Crossover Frequency",
+                            "description": f"Crossover at {freq}Hz is above typical. This may indicate small satellite speakers. Ensure subwoofer placement supports smooth handoff at this frequency.",
+                            "current_value": f"{freq}Hz",
+                            "recommended_value": "80-120Hz typical",
+                        })
+                except (AttributeError, ValueError):
+                    pass
+
+            # Check speaker distance/level
+            if "distance" in path_lower and "subwoofer" in path_lower:
+                self.issues.append({
+                    "severity": self.SEVERITY_INFO,
+                    "title": "Subwoofer Distance Set",
+                    "description": f"Subwoofer distance: {setting['value']}. Verify this matches your actual measurement. Room correction can set an acoustic distance different from physical distance.",
+                })
+
+    def _check_audio_processing(self):
+        """Check audio processing and decode settings."""
+        for setting in self.settings_found:
+            if setting["category"] not in ("audio", "room_correction"):
+                continue
+            path_lower = setting["path"].lower()
+            value_lower = setting["value"].lower()
+
+            # Check audio mode
+            if "mode" in path_lower and any(kw in path_lower for kw in ["sound", "surround", "listening"]):
+                if value_lower in ["auto", "straight", "direct", "pure direct"]:
+                    self.issues.append({
+                        "severity": self.SEVERITY_INFO,
+                        "title": f"Audio Mode: {setting['value']}",
+                        "description": "Good - this mode passes audio with minimal processing. 'Straight' preserves original channel layout. 'Pure Direct' bypasses DSP for purest signal.",
+                    })
+
+            # Check dialogue enhancement
+            if "dialogue" in path_lower or "dialog" in path_lower:
+                if value_lower not in ["0", "off", "disabled", "none"]:
+                    self.issues.append({
+                        "severity": self.SEVERITY_INFO,
+                        "title": "Dialogue Enhancement Active",
+                        "description": f"Dialogue enhancement set to '{setting['value']}'. This boosts centre channel. Useful for clarity but can affect audio balance.",
+                    })
+
+    def _check_video_settings(self):
+        """Check video passthrough settings."""
+        for setting in self.settings_found:
+            if setting["category"] != "video":
+                continue
+            path_lower = setting["path"].lower()
+            value_lower = setting["value"].lower()
+
+            # Check video processing mode
+            if "processing" in path_lower or "conversion" in path_lower:
+                if value_lower not in ["off", "disabled", "bypass", "passthrough"]:
+                    self.issues.append({
+                        "severity": self.SEVERITY_WARNING,
+                        "title": "Video Processing Enabled on AVR",
+                        "description": f"Video processing '{setting['value']}' is active. This adds latency and can interfere with HDR/DV passthrough. Set to bypass/passthrough unless you specifically need AVR video processing.",
+                        "current_value": setting["value"],
+                        "recommended_value": "Off / Bypass / Passthrough",
+                    })
+
+    def _check_network_settings(self):
+        """Check network settings."""
+        # Minimal checks for network - mostly informational
+        pass
+
+    def _generate_recommendations(self):
+        """Generate overall recommendations based on analysis."""
+        recs = []
+        categories_found = set(s["category"] for s in self.settings_found)
+
+        if "room_correction" in categories_found:
+            recs.append({
+                "title": "Room Correction Data Found",
+                "description": "We detected room correction settings. Re-run calibration after any speaker position changes. Check the Speaker Tuning tab for guides.",
+            })
+
+        if not any(s["category"] == "hdmi" for s in self.settings_found):
+            recs.append({
+                "title": "No HDMI Settings Found",
+                "description": "No HDMI settings were detected in this config file. Verify HDMI Enhanced Signal / 4K Signal Format is enabled on all ports via the AVR's on-screen menu.",
+            })
+
+        return recs
+
+
+# =============================================================================
+# Media Server Config Analyzer
+# =============================================================================
+
+class MediaServerConfigAnalyzer:
+    """Analyzes Plex, Emby, Jellyfin, and Kodi configuration files."""
+
+    SEVERITY_CRITICAL = "critical"
+    SEVERITY_WARNING = "warning"
+    SEVERITY_INFO = "info"
+
+    def __init__(self, content, filename=""):
+        self.content = content
+        self.filename = filename.lower()
+        self.issues = []
+        self.settings_found = []
+        self.server_type = "unknown"
+        self.parsed = {}
+
+    def analyze(self):
+        """Analyze the config and return results."""
+        self.issues = []
+        self.settings_found = []
+
+        # Detect server type
+        self.server_type = self._detect_server_type()
+
+        # Parse based on format
+        if self.filename.endswith('.xml'):
+            self._parse_xml()
+        elif self.filename.endswith('.json'):
+            self._parse_json()
+        else:
+            self._parse_generic()
+
+        # Run server-specific checks
+        if self.server_type == "plex":
+            self._check_plex_settings()
+        elif self.server_type in ("jellyfin", "emby"):
+            self._check_jellyfin_emby_settings()
+        elif self.server_type == "kodi":
+            self._check_kodi_settings()
+
+        # Run generic checks
+        self._check_transcoding_settings()
+        self._check_playback_settings()
+
+        return {
+            "device_type": "media_server",
+            "server_type": self.server_type,
+            "settings_found": self.settings_found,
+            "issues": self.issues,
+            "issue_count": {
+                "critical": len([i for i in self.issues if i["severity"] == self.SEVERITY_CRITICAL]),
+                "warning": len([i for i in self.issues if i["severity"] == self.SEVERITY_WARNING]),
+                "info": len([i for i in self.issues if i["severity"] == self.SEVERITY_INFO]),
+            },
+            "recommendations": self._generate_recommendations(),
+        }
+
+    def _detect_server_type(self):
+        """Detect which media server this config is from."""
+        content_lower = self.content[:3000].lower() if isinstance(self.content, str) else ""
+        fname = self.filename.lower()
+
+        if "plex" in content_lower or "plex" in fname or "preferences.xml" in fname:
+            return "plex"
+        elif "jellyfin" in content_lower or "jellyfin" in fname:
+            return "jellyfin"
+        elif "emby" in content_lower or "emby" in fname:
+            return "emby"
+        elif "kodi" in content_lower or "kodi" in fname or "advancedsettings" in fname or "guisettings" in fname:
+            return "kodi"
+
+        # Check XML root element
+        try:
+            root = ET.fromstring(self.content)
+            if root.tag == "Preferences":
+                return "plex"
+            elif root.tag in ("ServerConfiguration", "SystemConfiguration"):
+                return "jellyfin"
+        except (ET.ParseError, TypeError):
+            pass
+
+        return "unknown"
+
+    def _parse_xml(self):
+        """Parse XML config file."""
+        try:
+            root = ET.fromstring(self.content)
+
+            # Plex uses attributes on a single Preferences element
+            if root.tag == "Preferences":
+                for attr_name, attr_value in root.attrib.items():
+                    self.parsed[attr_name] = attr_value
+                    self.settings_found.append({
+                        "key": attr_name,
+                        "value": attr_value,
+                        "source": "Preferences.xml"
+                    })
+            else:
+                # Standard XML tree walk
+                self._walk_xml_tree(root, "")
+        except ET.ParseError:
+            self._parse_generic()
+
+    def _walk_xml_tree(self, element, path):
+        """Walk XML tree extracting settings."""
+        current_path = f"{path} > {element.tag}" if path else element.tag
+
+        # Handle Kodi-style <setting id="key">value</setting>
+        if element.tag == "setting" and "id" in element.attrib and element.text and element.text.strip():
+            setting_id = element.attrib["id"]
+            val = element.text.strip()
+            self.parsed[setting_id] = val
+            self.settings_found.append({
+                "key": setting_id,
+                "value": val,
+                "source": self.filename
+            })
+        else:
+            if element.text and element.text.strip():
+                val = element.text.strip()
+                self.parsed[current_path] = val
+                self.settings_found.append({
+                    "key": current_path,
+                    "value": val,
+                    "source": self.filename
+                })
+            for attr_name, attr_value in element.attrib.items():
+                key = f"{current_path}@{attr_name}"
+                self.parsed[key] = attr_value
+                self.settings_found.append({
+                    "key": key,
+                    "value": attr_value,
+                    "source": self.filename
+                })
+
+        for child in element:
+            self._walk_xml_tree(child, current_path)
+
+    def _parse_json(self):
+        """Parse JSON config."""
+        try:
+            data = json.loads(self.content)
+            self._walk_json(data, "")
+        except json.JSONDecodeError:
+            self._parse_generic()
+
+    def _walk_json(self, obj, path):
+        """Walk JSON extracting settings."""
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                current_path = f"{path}.{key}" if path else key
+                if isinstance(value, (str, int, float, bool)):
+                    self.parsed[current_path] = str(value)
+                    self.settings_found.append({
+                        "key": current_path,
+                        "value": str(value),
+                        "source": self.filename
+                    })
+                else:
+                    self._walk_json(value, current_path)
+        elif isinstance(obj, list):
+            for i, item in enumerate(obj):
+                self._walk_json(item, f"{path}[{i}]")
+
+    def _parse_generic(self):
+        """Parse as generic key-value."""
+        lines = self.content.split('\n') if isinstance(self.content, str) else []
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith('#') or line.startswith('//'):
+                continue
+            for sep in ['=', ':', '\t']:
+                if sep in line:
+                    parts = line.split(sep, 1)
+                    if len(parts) == 2:
+                        key = parts[0].strip()
+                        value = parts[1].strip().strip('"').strip("'")
+                        if key:
+                            self.parsed[key] = value
+                            self.settings_found.append({
+                                "key": key,
+                                "value": value,
+                                "source": self.filename
+                            })
+                    break
+
+    def _check_plex_settings(self):
+        """Check Plex-specific settings."""
+        # Direct Play
+        dp = self.parsed.get("DirectPlayVideo", self.parsed.get("allowMediaDeletion", ""))
+        # Transcoder quality
+        tq = self.parsed.get("TranscoderQuality", "")
+        if tq and tq not in ["12", "maximum"]:
+            self.issues.append({
+                "severity": self.SEVERITY_WARNING,
+                "title": "Transcoder Quality Not Maximum",
+                "description": f"TranscoderQuality is '{tq}'. Set to maximum (12) to preserve video quality when transcoding is unavoidable.",
+                "current_value": tq,
+                "recommended_value": "12 (Maximum)",
+            })
+
+        # Hardware transcoding
+        hw = self.parsed.get("HardwareAcceleratedCodecs", "")
+        if hw and hw != "1":
+            self.issues.append({
+                "severity": self.SEVERITY_INFO,
+                "title": "Hardware Transcoding Disabled",
+                "description": "Hardware-accelerated transcoding is not enabled. Enable it if your server has a compatible GPU for faster, more efficient transcoding.",
+                "current_value": "Disabled",
+                "recommended_value": "Enabled (if GPU available)",
+            })
+
+        # Subtitles burn
+        burn = self.parsed.get("OnlyImageTypeBurnIn", "")
+        if not burn or burn == "0":
+            self.issues.append({
+                "severity": self.SEVERITY_WARNING,
+                "title": "Subtitle Burn-In May Force Transcoding",
+                "description": "Text-based subtitles may trigger transcoding. Set 'Only image formats' for burn-in to allow Direct Play with text subtitles (SRT, ASS).",
+                "current_value": "All subtitle types burned in",
+                "recommended_value": "Only image formats (PGS, VOBSUB)",
+            })
+
+        # Secure connections
+        secure = self.parsed.get("secureConnections", "")
+        if secure == "2":
+            self.issues.append({
+                "severity": self.SEVERITY_INFO,
+                "title": "Secure Connections Required",
+                "description": "Secure connections are required. This is good for remote access but can sometimes cause issues with local playback on devices that don't support HTTPS.",
+            })
+
+        # Cinema trailers / pre-roll
+        preroll = self.parsed.get("CinemaTrailersPrerollID", "")
+        if preroll:
+            self.issues.append({
+                "severity": self.SEVERITY_INFO,
+                "title": "Pre-roll Configured",
+                "description": f"Pre-roll video is set. Ensure its format matches your main library content (codec, resolution, HDR) to avoid HDMI handshake delays (bonk).",
+            })
+
+    def _check_jellyfin_emby_settings(self):
+        """Check Jellyfin/Emby-specific settings."""
+        for key, value in self.parsed.items():
+            key_lower = key.lower()
+
+            # Hardware acceleration
+            if "hardwareaccelerationtype" in key_lower:
+                if not value or value.lower() == "none":
+                    self.issues.append({
+                        "severity": self.SEVERITY_INFO,
+                        "title": "Hardware Acceleration Disabled",
+                        "description": "No hardware transcoding acceleration configured. Enable VAAPI, QSV, or NVENC if your server has a compatible GPU.",
+                        "current_value": value or "None",
+                        "recommended_value": "VAAPI / QSV / NVENC",
+                    })
+
+            # Transcoding temp path
+            if "transcodingtemppat" in key_lower:
+                if value and "/tmp" in value.lower():
+                    self.issues.append({
+                        "severity": self.SEVERITY_WARNING,
+                        "title": "Transcoding Temp Path on /tmp",
+                        "description": "Transcoding to /tmp may cause issues with limited tmpfs size. Consider using a dedicated path with sufficient disk space.",
+                        "current_value": value,
+                        "recommended_value": "Dedicated SSD path",
+                    })
+
+            # Enable throttling
+            if "enablethrottling" in key_lower:
+                if value.lower() in ("false", "0"):
+                    self.issues.append({
+                        "severity": self.SEVERITY_INFO,
+                        "title": "Transcoding Throttling Disabled",
+                        "description": "Transcoding throttling is off. The server will transcode as fast as possible, using more resources. Enable throttling to reduce server load.",
+                    })
+
+    def _check_kodi_settings(self):
+        """Check Kodi-specific settings."""
+        for key, value in self.parsed.items():
+            key_lower = key.lower()
+
+            # Refresh rate adjustment
+            if "adjustrefreshrate" in key_lower:
+                if value.lower() in ("0", "off", "false", "disabled"):
+                    self.issues.append({
+                        "severity": self.SEVERITY_CRITICAL,
+                        "title": "Adjust Display Refresh Rate Disabled",
+                        "description": "Kodi is NOT adjusting display refresh rate to match content. This causes judder in movies (24fps content on 60Hz display). Enable 'On start/stop' for best results.",
+                        "current_value": value,
+                        "recommended_value": "On start/stop",
+                    })
+                elif value in ("1", "2") or "start" in value.lower():
+                    self.issues.append({
+                        "severity": self.SEVERITY_INFO,
+                        "title": "Refresh Rate Adjustment Enabled",
+                        "description": "Kodi will switch display refresh rate to match content. This eliminates judder but causes a brief mode switch (bonk). Use matched pre-roll format to mask it.",
+                    })
+
+            # Audio passthrough
+            if "passthrough" in key_lower or "audiopassthrough" in key_lower:
+                if value.lower() in ("false", "0", "off"):
+                    self.issues.append({
+                        "severity": self.SEVERITY_WARNING,
+                        "title": "Audio Passthrough Disabled",
+                        "description": "Audio passthrough is off. Kodi will decode audio internally and send PCM. Enable passthrough for Dolby Atmos, DTS:X, and other lossless formats to work through your AVR.",
+                        "current_value": "Disabled",
+                        "recommended_value": "Enabled (for Atmos/DTS:X)",
+                    })
+
+            # Sync playback to display
+            if "syncplaybackto" in key_lower:
+                if value.lower() in ("false", "0", "off"):
+                    self.issues.append({
+                        "severity": self.SEVERITY_INFO,
+                        "title": "Sync Playback to Display Disabled",
+                        "description": "Video clock sync is off. Enable this to reduce micro-judder by matching video playback to your display's actual refresh rate.",
+                    })
+
+    def _check_transcoding_settings(self):
+        """Check generic transcoding-related settings."""
+        for key, value in self.parsed.items():
+            key_lower = key.lower()
+
+            # Max bitrate limits
+            if ("maxbitrate" in key_lower or "max_bitrate" in key_lower or "maxstreamingbitrate" in key_lower):
+                try:
+                    bitrate = int(re.search(r'\d+', value).group())
+                    # If bitrate seems like Mbps and is low
+                    if bitrate < 50 and "kbps" not in key_lower:
+                        self.issues.append({
+                            "severity": self.SEVERITY_WARNING,
+                            "title": "Low Maximum Bitrate Limit",
+                            "description": f"Maximum bitrate is limited to {bitrate} Mbps. 4K HDR content can exceed 80 Mbps. Set to unlimited or at least 100 Mbps for local network playback.",
+                            "current_value": f"{bitrate} Mbps",
+                            "recommended_value": "Unlimited or 100+ Mbps",
+                        })
+                except (AttributeError, ValueError):
+                    pass
+
+    def _check_playback_settings(self):
+        """Check playback-related settings."""
+        for key, value in self.parsed.items():
+            key_lower = key.lower()
+
+            # Direct play
+            if "directplay" in key_lower or "direct_play" in key_lower:
+                if value.lower() in ("false", "0", "off", "disabled"):
+                    self.issues.append({
+                        "severity": self.SEVERITY_CRITICAL,
+                        "title": "Direct Play Disabled",
+                        "description": "Direct Play is off. This forces transcoding of all media, degrading quality and potentially changing HDR/DV format. Enable Direct Play for best quality.",
+                        "current_value": "Disabled",
+                        "recommended_value": "Enabled",
+                    })
+
+            # Direct stream
+            if "directstream" in key_lower or "direct_stream" in key_lower:
+                if value.lower() in ("false", "0", "off", "disabled"):
+                    self.issues.append({
+                        "severity": self.SEVERITY_WARNING,
+                        "title": "Direct Stream Disabled",
+                        "description": "Direct Stream is off. When Direct Play fails, Direct Stream remuxes without re-encoding video. Disabling it forces full transcoding.",
+                        "current_value": "Disabled",
+                        "recommended_value": "Enabled",
+                    })
+
+    def _generate_recommendations(self):
+        """Generate overall recommendations."""
+        recs = []
+
+        if self.server_type != "unknown":
+            server_name = self.server_type.capitalize()
+            recs.append({
+                "title": f"{server_name} Configuration Detected",
+                "description": f"Analyzed {len(self.settings_found)} settings from your {server_name} configuration.",
+            })
+
+        # General recommendation for bonk reduction
+        recs.append({
+            "title": "Minimize Format Switching (Bonk Reduction)",
+            "description": "Ensure Direct Play is enabled and pre-roll video matches your library's dominant format (codec, resolution, frame rate, HDR). This prevents HDMI handshake renegotiation between pre-roll and main content.",
+        })
+
+        return recs
+
+
+# =============================================================================
 # API Routes
 # =============================================================================
 
@@ -4957,6 +6019,91 @@ def analyze_config():
             json.dump(results["optimized_config"], f, indent=2)
         results["download_filename"] = filename
 
+    return jsonify(results)
+
+
+@app.route("/api/analyze/manual", methods=["POST"])
+def analyze_manual():
+    """Analyze uploaded device manual (PDF)."""
+    if not PDF_SUPPORT:
+        return jsonify({"error": "PDF support not available. Install PyMuPDF: pip install PyMuPDF"}), 500
+
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    if not file.filename.lower().endswith('.pdf'):
+        return jsonify({"error": "Only PDF files are supported"}), 400
+
+    # Save temporarily
+    safe_name = f"manual_{uuid.uuid4().hex[:8]}.pdf"
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
+    try:
+        file.save(filepath)
+        analyzer = ManualAnalyzer(filepath)
+        results = analyzer.analyze()
+        results["filename"] = file.filename
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
+    finally:
+        # Clean up temp file
+        try:
+            os.remove(filepath)
+        except OSError:
+            pass
+
+
+@app.route("/api/analyze/avr-config", methods=["POST"])
+def analyze_avr_config():
+    """Analyze uploaded AVR configuration file."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    try:
+        content = file.read().decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            file.seek(0)
+            content = file.read().decode("latin-1")
+        except Exception:
+            return jsonify({"error": "Could not decode file. Ensure it is a text-based config file."}), 400
+
+    analyzer = AVRConfigAnalyzer(content, file.filename)
+    results = analyzer.analyze()
+    results["filename"] = file.filename
+    return jsonify(results)
+
+
+@app.route("/api/analyze/media-config", methods=["POST"])
+def analyze_media_config():
+    """Analyze uploaded media server configuration file."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file uploaded"}), 400
+
+    file = request.files["file"]
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    try:
+        content = file.read().decode("utf-8")
+    except UnicodeDecodeError:
+        try:
+            file.seek(0)
+            content = file.read().decode("latin-1")
+        except Exception:
+            return jsonify({"error": "Could not decode file. Ensure it is a text-based config file (XML, JSON, or INI)."}), 400
+
+    analyzer = MediaServerConfigAnalyzer(content, file.filename)
+    results = analyzer.analyze()
+    results["filename"] = file.filename
     return jsonify(results)
 
 

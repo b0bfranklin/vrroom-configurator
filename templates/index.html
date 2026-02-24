@@ -1499,7 +1499,7 @@
                 </div>
                 <div class="collapsible-content">
                     <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                        Upload device manuals (PDF) for your equipment. We'll extract settings, menu paths, and optimal configurations.
+                        Upload device manuals (PDF) for your equipment. We'll extract HDMI, audio, video, and network settings, identify menu paths, and generate recommendations specific to your device.
                     </p>
                     <div class="dropzone" id="manual-dropzone">
                         <div class="dropzone-icon">&#128214;</div>
@@ -1520,7 +1520,7 @@
                 </div>
                 <div class="collapsible-content">
                     <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                        Upload configuration exports from your devices for analysis and optimization recommendations.
+                        Upload configuration exports from your devices. We'll parse settings, identify issues that cause bonk/handshake delays, and recommend optimal configurations.
                     </p>
 
                     <div class="config-upload-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
@@ -1540,7 +1540,7 @@
                         <div class="config-upload-card" style="background: var(--bg-tertiary); border-radius: 8px; padding: 16px;">
                             <h4 style="margin-bottom: 8px;">&#128266; AV Receiver</h4>
                             <p style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 12px;">
-                                Yamaha, Denon, Marantz config/preset files
+                                Yamaha, Denon, Marantz, Onkyo, Anthem configs
                             </p>
                             <div class="dropzone" id="avr-config-dropzone" style="padding: 20px;">
                                 <p>Drop config file here</p>
@@ -1552,7 +1552,7 @@
                         <div class="config-upload-card" style="background: var(--bg-tertiary); border-radius: 8px; padding: 16px;">
                             <h4 style="margin-bottom: 8px;">&#128187; Media Server</h4>
                             <p style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 12px;">
-                                Plex, Emby, Jellyfin, Kodi settings
+                                Plex Preferences.xml, Jellyfin/Emby system.xml, Kodi settings
                             </p>
                             <div class="dropzone" id="media-config-dropzone" style="padding: 20px;">
                                 <p>Drop config file here</p>
@@ -4156,30 +4156,191 @@
 
         function removeManual(idx) {
             uploadedManuals.splice(idx, 1);
+            renderManualsList();
+        }
+
+        function renderManualsList() {
             const manualsDiv = document.getElementById('uploaded-manuals');
             if (uploadedManuals.length === 0) {
                 manualsDiv.innerHTML = '';
-            } else {
-                handleManualUpload.call(null, { name: '', size: 0 }); // Trigger re-render
-                // Re-render by calling the upload handler logic
-                const dummyEvent = uploadedManuals[0];
-                uploadedManuals.pop();
-                handleManualUpload(dummyEvent);
+                return;
             }
+            manualsDiv.innerHTML = `
+                <h4 style="margin-bottom: 12px; color: var(--accent-green);">Uploaded Manuals</h4>
+                ${uploadedManuals.map((m, idx) => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 8px;">
+                        <div>
+                            <strong>${m.name}</strong>
+                            <span style="color: var(--text-secondary); font-size: 0.85em; margin-left: 8px;">(${(m.size / 1024 / 1024).toFixed(2)} MB)</span>
+                            ${m.analyzed ? '<span style="color: var(--accent-green); font-size: 0.85em; margin-left: 8px;">Analyzed</span>' : ''}
+                        </div>
+                        <div>
+                            <button class="btn btn-secondary" onclick="analyzeManual(${idx})" style="padding: 6px 12px; font-size: 0.85em;">${m.analyzing ? 'Analyzing...' : 'Analyze'}</button>
+                            <button class="btn btn-secondary" onclick="removeManual(${idx})" style="padding: 6px 12px; font-size: 0.85em; margin-left: 4px;">Remove</button>
+                        </div>
+                    </div>
+                `).join('')}
+                <p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 12px;">
+                    PDF analysis extracts text to find settings, menu paths, and optimal configurations. Large manuals may take a moment.
+                </p>
+                <div id="manual-analysis-results"></div>
+            `;
         }
 
         async function analyzeManual(idx) {
             const manual = uploadedManuals[idx];
-            if (!manual) return;
+            if (!manual || manual.analyzing) return;
 
-            // Show analyzing status
-            alert('Manual analysis is coming soon. For now, you can view your manual and reference our device-specific recommendations in the My Setup tab.');
+            manual.analyzing = true;
+            renderManualsList();
+
+            const formData = new FormData();
+            formData.append('file', manual.file);
+
+            try {
+                const response = await fetch('/api/analyze/manual', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                manual.analyzing = false;
+                manual.analyzed = true;
+                renderManualsList();
+
+                if (data.error) {
+                    displayManualResults({ error: data.error, filename: manual.name, page_count: data.page_count || 0 });
+                    return;
+                }
+
+                displayManualResults(data);
+            } catch (err) {
+                manual.analyzing = false;
+                renderManualsList();
+                alert('Error analyzing manual: ' + err.message);
+            }
+        }
+
+        function displayManualResults(data) {
+            const resultsDiv = document.getElementById('manual-analysis-results');
+            if (!resultsDiv) return;
+
+            if (data.error) {
+                resultsDiv.innerHTML = `
+                    <div style="padding: 16px; background: var(--bg-primary); border: 1px solid var(--accent-red); border-radius: 8px; margin-top: 16px;">
+                        <h4 style="color: var(--accent-red); margin-bottom: 8px;">Analysis Error</h4>
+                        <p style="color: var(--text-secondary);">${data.error}</p>
+                        ${data.page_count ? `<p style="color: var(--text-secondary); font-size: 0.85em;">Pages detected: ${data.page_count}</p>` : ''}
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <div style="padding: 16px; background: var(--bg-primary); border: 1px solid var(--accent-green); border-radius: 8px; margin-top: 16px;">
+                    <h4 style="margin-bottom: 12px;">Manual Analysis: ${data.filename || 'Unknown'}</h4>
+
+                    <!-- Device Detection -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 16px;">
+                        <div style="padding: 10px; background: var(--bg-tertiary); border-radius: 6px;">
+                            <div style="font-size: 0.8em; color: var(--text-secondary); text-transform: uppercase;">Device Type</div>
+                            <div style="font-size: 1.1em; color: var(--accent-blue);">${(data.device_type || 'Unknown').replace('_', ' ')}</div>
+                        </div>
+                        <div style="padding: 10px; background: var(--bg-tertiary); border-radius: 6px;">
+                            <div style="font-size: 0.8em; color: var(--text-secondary); text-transform: uppercase;">Manufacturer</div>
+                            <div style="font-size: 1.1em;">${data.manufacturer || 'Unknown'}</div>
+                        </div>
+                        <div style="padding: 10px; background: var(--bg-tertiary); border-radius: 6px;">
+                            <div style="font-size: 0.8em; color: var(--text-secondary); text-transform: uppercase;">Model</div>
+                            <div style="font-size: 1.1em;">${data.model || 'Unknown'}</div>
+                        </div>
+                        <div style="padding: 10px; background: var(--bg-tertiary); border-radius: 6px;">
+                            <div style="font-size: 0.8em; color: var(--text-secondary); text-transform: uppercase;">Pages / Matches</div>
+                            <div style="font-size: 1.1em;">${data.page_count || 0} pages / ${data.raw_matches_count || 0} matches</div>
+                        </div>
+                    </div>
+            `;
+
+            // Recommendations
+            if (data.recommended_settings && data.recommended_settings.length > 0) {
+                html += '<h4 style="margin-bottom: 8px;">Recommendations</h4>';
+                html += data.recommended_settings.map(rec => `
+                    <div class="issue ${rec.severity}" style="margin-bottom: 8px;">
+                        <div class="issue-header">
+                            <span class="issue-badge">${rec.severity}</span>
+                            <span class="issue-title">${rec.title}</span>
+                        </div>
+                        <div class="issue-description">${rec.description}</div>
+                    </div>
+                `).join('');
+            }
+
+            // Settings found by section
+            const sectionNames = { hdmi: 'HDMI & Video I/O', audio: 'Audio', video: 'Video/Display', network: 'Network & Control' };
+            const sectionIcons = { hdmi: '&#128268;', audio: '&#128266;', video: '&#128250;', network: '&#127760;' };
+
+            if (data.sections) {
+                html += '<h4 style="margin: 16px 0 8px;">Settings Found in Manual</h4>';
+                html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">';
+
+                for (const [key, section] of Object.entries(data.sections)) {
+                    const findings = section.findings || [];
+                    html += `
+                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px;">
+                            <h5 style="margin-bottom: 8px;">${sectionIcons[key] || ''} ${sectionNames[key] || key} (${findings.length})</h5>
+                    `;
+
+                    if (findings.length === 0) {
+                        html += '<p style="color: var(--text-secondary); font-size: 0.85em;">No matches found</p>';
+                    } else {
+                        html += findings.slice(0, 8).map(f => `
+                            <div style="padding: 6px 8px; margin-bottom: 4px; background: var(--bg-primary); border-radius: 4px; font-size: 0.85em;">
+                                <strong style="color: var(--accent-green);">${f.setting}</strong>
+                                <span style="color: var(--text-secondary); float: right;">p.${f.page}</span>
+                                <div style="color: var(--text-secondary); margin-top: 4px; font-size: 0.9em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    ...${f.context.substring(0, 120)}...
+                                </div>
+                            </div>
+                        `).join('');
+                        if (findings.length > 8) {
+                            html += `<p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 4px;">+ ${findings.length - 8} more matches</p>`;
+                        }
+                    }
+                    html += '</div>';
+                }
+                html += '</div>';
+            }
+
+            // Menu paths found
+            if (data.menu_paths && data.menu_paths.length > 0) {
+                html += `
+                    <h4 style="margin: 16px 0 8px;">Menu Paths Found (${data.menu_paths.length})</h4>
+                    <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 8px; max-height: 200px; overflow-y: auto;">
+                        ${data.menu_paths.slice(0, 20).map(mp => `
+                            <div style="padding: 4px 8px; margin-bottom: 2px; font-size: 0.85em; font-family: monospace;">
+                                <span style="color: var(--accent-blue);">${mp.path}</span>
+                                <span style="color: var(--text-secondary); float: right;">p.${mp.page}</span>
+                            </div>
+                        `).join('')}
+                        ${data.menu_paths.length > 20 ? `<p style="color: var(--text-secondary); font-size: 0.85em;">+ ${data.menu_paths.length - 20} more paths</p>` : ''}
+                    </div>
+                `;
+            }
+
+            html += '</div>';
+            resultsDiv.innerHTML = html;
         }
 
         // Config file upload handlers
         async function handleHDMIConfigUpload(file) {
             const resultsDiv = document.getElementById('config-analysis-results');
-            resultsDiv.innerHTML = '<p style="color: var(--accent-blue);">Analyzing HDMI processor config...</p>';
+            resultsDiv.innerHTML = `
+                <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="spinner" style="width: 20px; height: 20px;"></div>
+                        <span style="color: var(--accent-blue);">Analyzing HDMI processor config: ${file.name}...</span>
+                    </div>
+                </div>`;
 
             const formData = new FormData();
             formData.append('file', file);
@@ -4193,70 +4354,109 @@
                 const data = await response.json();
 
                 if (data.error) {
-                    resultsDiv.innerHTML = `<p style="color: var(--accent-red);">Error: ${data.error}</p>`;
+                    resultsDiv.innerHTML = `<div style="padding: 16px; background: var(--bg-tertiary); border: 1px solid var(--accent-red); border-radius: 8px; margin-top: 12px;">
+                        <p style="color: var(--accent-red);">Error: ${data.error}</p>
+                    </div>`;
                     return;
                 }
 
-                displayConfigAnalysisResults(data, 'HDMI Processor');
+                displayConfigAnalysisResults(data, 'HDMI Processor', file.name);
             } catch (err) {
-                resultsDiv.innerHTML = `<p style="color: var(--accent-red);">Error analyzing config: ${err.message}</p>`;
+                resultsDiv.innerHTML = `<div style="padding: 16px; background: var(--bg-tertiary); border: 1px solid var(--accent-red); border-radius: 8px; margin-top: 12px;">
+                    <p style="color: var(--accent-red);">Error analyzing config: ${err.message}</p>
+                </div>`;
             }
         }
 
         async function handleAVRConfigUpload(file) {
             const resultsDiv = document.getElementById('config-analysis-results');
-            resultsDiv.innerHTML = '<p style="color: var(--accent-blue);">Analyzing AVR config...</p>';
-
-            // For now, show a message that AVR config analysis is coming soon
             resultsDiv.innerHTML = `
                 <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 12px;">
-                    <h4 style="margin-bottom: 8px;">AVR Config: ${file.name}</h4>
-                    <p style="color: var(--text-secondary);">
-                        AVR configuration analysis is coming soon. We're working on parsers for:
-                    </p>
-                    <ul style="margin: 12px 0 0 20px; color: var(--text-secondary);">
-                        <li>Yamaha MusicCast/YPAO exports</li>
-                        <li>Denon/Marantz HEOS app settings</li>
-                        <li>Anthem ARC Genesis files</li>
-                    </ul>
-                    <p style="color: var(--accent-yellow); margin-top: 12px;">
-                        For now, use the "My Setup" tab to get AVR-specific recommendations based on your equipment.
-                    </p>
-                </div>
-            `;
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="spinner" style="width: 20px; height: 20px;"></div>
+                        <span style="color: var(--accent-blue);">Analyzing AVR config: ${file.name}...</span>
+                    </div>
+                </div>`;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/analyze/avr-config', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    resultsDiv.innerHTML = `<div style="padding: 16px; background: var(--bg-tertiary); border: 1px solid var(--accent-red); border-radius: 8px; margin-top: 12px;">
+                        <p style="color: var(--accent-red);">Error: ${data.error}</p>
+                    </div>`;
+                    return;
+                }
+
+                displayConfigAnalysisResults(data, 'AV Receiver', file.name);
+            } catch (err) {
+                resultsDiv.innerHTML = `<div style="padding: 16px; background: var(--bg-tertiary); border: 1px solid var(--accent-red); border-radius: 8px; margin-top: 12px;">
+                    <p style="color: var(--accent-red);">Error analyzing config: ${err.message}</p>
+                </div>`;
+            }
         }
 
         async function handleMediaConfigUpload(file) {
             const resultsDiv = document.getElementById('config-analysis-results');
-            resultsDiv.innerHTML = '<p style="color: var(--accent-blue);">Analyzing media server config...</p>';
-
-            // For now, show a message that media server config analysis is coming soon
             resultsDiv.innerHTML = `
                 <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 12px;">
-                    <h4 style="margin-bottom: 8px;">Media Server Config: ${file.name}</h4>
-                    <p style="color: var(--text-secondary);">
-                        Media server configuration analysis is coming soon. We're working on parsers for:
-                    </p>
-                    <ul style="margin: 12px 0 0 20px; color: var(--text-secondary);">
-                        <li>Plex Preferences.xml</li>
-                        <li>Emby/Jellyfin system.xml</li>
-                        <li>Kodi advancedsettings.xml and guisettings.xml</li>
-                    </ul>
-                    <p style="color: var(--accent-yellow); margin-top: 12px;">
-                        For now, use the "Pre-roll Analyzer" tab to check video format compatibility with your media server.
-                    </p>
-                </div>
-            `;
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div class="spinner" style="width: 20px; height: 20px;"></div>
+                        <span style="color: var(--accent-blue);">Analyzing media server config: ${file.name}...</span>
+                    </div>
+                </div>`;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/analyze/media-config', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    resultsDiv.innerHTML = `<div style="padding: 16px; background: var(--bg-tertiary); border: 1px solid var(--accent-red); border-radius: 8px; margin-top: 12px;">
+                        <p style="color: var(--accent-red);">Error: ${data.error}</p>
+                    </div>`;
+                    return;
+                }
+
+                displayConfigAnalysisResults(data, data.server_type ? data.server_type.charAt(0).toUpperCase() + data.server_type.slice(1) : 'Media Server', file.name);
+            } catch (err) {
+                resultsDiv.innerHTML = `<div style="padding: 16px; background: var(--bg-tertiary); border: 1px solid var(--accent-red); border-radius: 8px; margin-top: 12px;">
+                    <p style="color: var(--accent-red);">Error analyzing config: ${err.message}</p>
+                </div>`;
+            }
         }
 
-        function displayConfigAnalysisResults(data, deviceType) {
+        function displayConfigAnalysisResults(data, deviceType, filename) {
             const resultsDiv = document.getElementById('config-analysis-results');
 
-            // Display analysis results
             let html = `
                 <div style="padding: 16px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 12px;">
-                    <h4 style="margin-bottom: 12px;">${deviceType} Analysis Results</h4>
+                    <h4 style="margin-bottom: 4px;">${deviceType} Analysis Results</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.85em; margin-bottom: 12px;">${filename || data.filename || ''}</p>
             `;
+
+            // Format detection badge
+            if (data.format_detected || data.server_type) {
+                const detected = data.format_detected || data.server_type;
+                html += `<div style="margin-bottom: 12px;">
+                    <span style="padding: 4px 10px; background: var(--accent-purple); border-radius: 12px; font-size: 0.85em;">
+                        Detected: ${detected}
+                    </span>
+                    ${data.settings_found ? `<span style="color: var(--text-secondary); font-size: 0.85em; margin-left: 8px;">${data.settings_found.length} settings parsed</span>` : ''}
+                </div>`;
+            }
 
             // Summary badges
             html += `
@@ -4285,7 +4485,7 @@
                         ${issue.current_value !== undefined ? `
                             <div style="margin-top: 8px; font-size: 0.9em;">
                                 <span style="color: var(--accent-red);">Current: ${issue.current_value}</span>
-                                <span style="margin: 0 8px;">→</span>
+                                <span style="margin: 0 8px;">&rarr;</span>
                                 <span style="color: var(--accent-green);">Recommended: ${issue.recommended_value}</span>
                             </div>
                         ` : ''}
@@ -4293,6 +4493,60 @@
                 `).join('');
             } else {
                 html += '<p style="color: var(--accent-green);">No issues found! Your configuration looks good.</p>';
+            }
+
+            // Recommendations
+            if (data.recommendations && data.recommendations.length > 0) {
+                html += '<h4 style="margin: 16px 0 8px;">Recommendations</h4>';
+                html += data.recommendations.map(rec => `
+                    <div style="padding: 10px; background: var(--bg-primary); border-radius: 6px; margin-bottom: 6px; border-left: 3px solid var(--accent-blue);">
+                        <strong>${rec.title}</strong>
+                        <p style="color: var(--text-secondary); font-size: 0.9em; margin-top: 4px;">${rec.description}</p>
+                    </div>
+                `).join('');
+            }
+
+            // Settings breakdown (for AVR and media server configs)
+            if (data.settings_found && data.settings_found.length > 0) {
+                // Group by category
+                const grouped = {};
+                data.settings_found.forEach(s => {
+                    const cat = s.category || 'other';
+                    if (!grouped[cat]) grouped[cat] = [];
+                    grouped[cat].push(s);
+                });
+
+                const catNames = {
+                    hdmi: 'HDMI Settings', speaker: 'Speaker Config', audio: 'Audio Processing',
+                    video: 'Video Settings', network: 'Network', room_correction: 'Room Correction', other: 'Other'
+                };
+
+                html += '<h4 style="margin: 16px 0 8px;">Parsed Settings by Category</h4>';
+                html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">';
+
+                for (const [cat, settings] of Object.entries(grouped)) {
+                    if (settings.length === 0) continue;
+                    html += `
+                        <div style="background: var(--bg-primary); padding: 12px; border-radius: 8px;">
+                            <h5 style="margin-bottom: 8px; color: var(--accent-blue);">${catNames[cat] || cat} (${settings.length})</h5>
+                            <div style="max-height: 200px; overflow-y: auto;">
+                    `;
+                    settings.slice(0, 15).forEach(s => {
+                        const pathParts = (s.path || s.key || '').split(/[>./]/);
+                        const shortKey = pathParts[pathParts.length - 1] || s.path || s.key;
+                        html += `
+                            <div style="display: flex; justify-content: space-between; padding: 4px 6px; margin-bottom: 2px; font-size: 0.85em; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <span style="color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 55%;" title="${s.path || s.key}">${shortKey.trim()}</span>
+                                <span style="color: var(--accent-green); font-family: monospace;" title="${s.value}">${(s.value || '').substring(0, 30)}</span>
+                            </div>
+                        `;
+                    });
+                    if (settings.length > 15) {
+                        html += `<p style="color: var(--text-secondary); font-size: 0.85em; margin-top: 4px;">+ ${settings.length - 15} more</p>`;
+                    }
+                    html += '</div></div>';
+                }
+                html += '</div>';
             }
 
             html += '</div>';
