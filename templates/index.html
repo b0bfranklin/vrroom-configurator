@@ -1544,7 +1544,7 @@
                             </p>
                             <div class="dropzone" id="avr-config-dropzone" style="padding: 20px;">
                                 <p>Drop config file here</p>
-                                <input type="file" id="avr-config-input" accept=".json,.xml,.mcacc,.aud">
+                                <input type="file" id="avr-config-input" accept=".json,.xml,.mcacc,.aud,.dat,.txt">
                             </div>
                         </div>
 
@@ -1620,6 +1620,9 @@
                         </div>
 
                         <h3 style="margin: 20px 0 12px;">Port Connection Guide</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 12px;">
+                            <strong>Note:</strong> Port assignments depend on your signal chain. Below shows a typical "split output" setup where video and audio go to separate destinations.
+                        </p>
                         <div class="port-guide" style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px;">
                             <table style="width: 100%; border-collapse: collapse;">
                                 <thead>
@@ -1636,14 +1639,14 @@
                                         <td style="padding: 8px;">Use RX0 for primary source (fastest switching)</td>
                                     </tr>
                                     <tr>
-                                        <td style="padding: 8px;">HDMI Processor → Display</td>
-                                        <td style="padding: 8px;">TX0 (Output) → HDMI 1</td>
-                                        <td style="padding: 8px;">TX0 for video, use display's primary HDMI port</td>
+                                        <td style="padding: 8px;">HDMI Processor → AVR</td>
+                                        <td style="padding: 8px;">TX0 (Output) → AVR HDMI IN</td>
+                                        <td style="padding: 8px;">Primary output carries both video + audio to AVR</td>
                                     </tr>
                                     <tr>
-                                        <td style="padding: 8px;">HDMI Processor → AVR</td>
-                                        <td style="padding: 8px;">TX1 (Output) → HDMI IN</td>
-                                        <td style="padding: 8px;">eARC/ARC for audio return if supported</td>
+                                        <td style="padding: 8px;">AVR → Display</td>
+                                        <td style="padding: 8px;">AVR HDMI OUT → Display HDMI 1</td>
+                                        <td style="padding: 8px;">AVR passes video to display, extracts audio</td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px;">AVR → Speakers</td>
