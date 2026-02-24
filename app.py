@@ -4938,7 +4938,7 @@ class ManualAnalyzer:
         (r'(?:4K|8K)\s*(?:@|at)\s*(?:60|120)\s*Hz', 'Resolution/Refresh Support'),
         (r'(?:HDR10\+?|Dolby\s*Vision|HLG|HDR)', 'HDR Format Support'),
         (r'(?:eARC|ARC|EARC)', 'Audio Return Channel'),
-        (r'(?:VRR|ALLM|QMS|QFT)', 'HDMI 2\.1 Gaming Features'),
+        (r'(?:VRR|ALLM|QMS|QFT)', 'HDMI 2.1 Gaming Features'),
         (r'(?:CEC|HDMI\s*Control|Anynet|Bravia\s*Sync|SIMPLINK)', 'CEC/Device Control'),
         (r'(?:HDCP)\s*(?:2\.[23]|1\.4)', 'HDCP Version'),
         (r'(?:Deep\s*Color|Deep\s*Colour)', 'Deep Color'),
