@@ -6026,7 +6026,18 @@ def analyze_config():
 def analyze_manual():
     """Analyze uploaded device manual (PDF)."""
     if not PDF_SUPPORT:
-        return jsonify({"error": "PDF support not available. Install PyMuPDF: pip install PyMuPDF"}), 500
+        return jsonify({
+            "error": "PDF support not available",
+            "pdf_support": False,
+            "details": "PyMuPDF is required for PDF analysis but is not installed.",
+            "install_instructions": {
+                "windows_x64": "pip install PyMuPDF",
+                "windows_arm64": "Requires Visual Studio Build Tools 2022. Install from https://visualstudio.microsoft.com/visual-cpp-build-tools/ then run: pip install PyMuPDF",
+                "linux": "pip install PyMuPDF",
+                "macos": "pip install PyMuPDF",
+            },
+            "alternatives": "You can still use the AVR config analyzer and Media Server config analyzer - they work without PDF support."
+        }), 200  # Return 200 so frontend displays the helpful message
 
     if "file" not in request.files:
         return jsonify({"error": "No file uploaded"}), 400
@@ -6802,8 +6813,9 @@ def health_check():
         "ffprobe_path": ffprobe_path,
         "ffmpeg_available": ffmpeg_path is not None,
         "ffmpeg_path": ffmpeg_path,
+        "pdf_support": PDF_SUPPORT,
         "platform": platform.system(),
-        "version": "1.2.0"
+        "version": "1.3.0"
     })
 
 
