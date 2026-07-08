@@ -1,0 +1,21 @@
+{
+  "name": "av-signal-lab",
+  "productName": "AV Signal Lab",
+  "version": "2.0.0",
+  "description": "Home theater signal chain optimizer - eliminate HDMI bonk, configure HDFury VRROOM, track firmware updates",
+  "main": "src/main/main.js",
+  "author": "AV Signal Lab",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/core.test.js",
+    "dist:win": "electron-builder --win --x64 --arm64",
+    "dist:win-x64": "electron-builder --win --x64",
+    "dist:win-arm64": "electron-builder --win --arm64",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "avoid_bonk": {
+    "id": "avoid_bonk",
+    "name": "Avoid HDMI Bonk / Blank Screen",
+    "description": "Minimize or eliminate black screen delays during format changes between pre-roll and main content.",
+    "category": "video"
+  },
+  "lldv_non_dv": {
+    "id": "lldv_non_dv",
+    "name": "Dolby Vision on Non-DV Display (LLDV)",
+    "description": "Enable Dolby Vision content on displays without native DV support via Low Latency Dolby Vision conversion.",
+    "category": "video"
+  },
+  "best_audio": {
+    "id": "best_audio",
+    "name": "Best Audio Quality (Atmos/DTS:X)",
+    "description": "Optimize audio routing for highest quality lossless surround sound passthrough.",
+    "category": "audio"
+  },
+  "gaming_low_latency": {
+    "id": "gaming_low_latency",
+    "name": "Gaming / Low Latency",
+    "description": "Enable VRR, ALLM, and minimize processing for the lowest input lag gaming experience.",
+    "category": "video"
+  },
+  "fix_preroll": {
+    "id": "fix_preroll",
+    "name": "Fix Pre-roll Visibility",
+    "description": "Fix issues where pre-roll video shows only 1 frame or black screen while audio plays.",
+    "category": "video"
+  },
+  "hdr_passthrough": {
+    "id": "hdr_passthrough",
+    "name": "4K HDR Passthrough",
+    "description": "Ensure clean 4K HDR10/HLG passthrough with correct color space and metadata.",
+    "category": "video"
+  },
+  "minimize_format_switch": {
+    "id": "minimize_format_switch",
+    "name": "Minimize Format Switching",
+    "description": "Reduce the number of HDMI re-negotiations by standardizing output format across content types.",
+    "category": "video"
+  }
+}

@@ -1,0 +1,35 @@
+appId: com.avsignallab.app
+productName: AV Signal Lab
+directories:
+  output: release
+files:
+  - src/**/*
+  - data/**/*
+  - package.json
+win:
+  artifactName: AV-Signal-Lab-${version}-${arch}.${ext}
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+    - target: portable
+      arch: [x64, arm64]
+nsis:
+  # Fully automatic installer: double-click -> installs per-user (no admin
+  # prompt), creates shortcuts, launches the app when finished.
+  oneClick: true
+  perMachine: false
+  runAfterFinish: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  deleteAppDataOnUninstall: false
+  artifactName: AV-Signal-Lab-Setup-${version}-${arch}.${ext}
+portable:
+  artifactName: AV-Signal-Lab-${version}-portable-${arch}.${ext}
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+linux:
+  target:
+    - target: AppImage
+      arch: [x64, arm64]

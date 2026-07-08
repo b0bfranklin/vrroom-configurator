@@ -1,0 +1,83 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run core tests
+        run: npm test
+
+      - name: Build Windows installers (x64 + ARM64)
+        run: npm run dist:win
+        env:
+          # No code signing certificate - build unsigned
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: List artifacts
+        run: Get-ChildItem release -File | Select-Object Name, Length
+        shell: pwsh
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: av-signal-lab-windows
+          path: |
+            release/*.exe
+          if-no-files-found: error
+
+      - name: Read app version
+        id: version
+        run: |
+          $v = (Get-Content package.json | ConvertFrom-Json).version
+          "version=$v" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Publish GitHub Release
+        # Runs for v* tag pushes AND manual runs from the Actions tab.
+        # Manual runs create/update the release tagged from package.json.
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.version.outputs.version) }}
+          files: release/*.exe
+          generate_release_notes: true
+          body: |
+            ## AV Signal Lab ${{ github.ref_name }}
+
+            ### Which file do I download?
+
+            | Your PC | File |
+            | --- | --- |
+            | Windows on ARM (Snapdragon / Surface) | `AV-Signal-Lab-Setup-*-arm64.exe` |
+            | Windows Intel/AMD | `AV-Signal-Lab-Setup-*-x64.exe` |
+            | No-install (run from anywhere) | `AV-Signal-Lab-*-portable-*.exe` |
+
+            ### Install
+
+            1. Download the Setup file for your PC.
+            2. Double-click it. The installer completes automatically - it installs
+               per-user (no admin prompt), creates Start Menu and Desktop shortcuts,
+               and launches the app when done.
+
+            > **Note:** the app is not code-signed, so Windows SmartScreen may show
+            > "Windows protected your PC". Click **More info > Run anyway**.
