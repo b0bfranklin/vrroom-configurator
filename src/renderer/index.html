@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'" />
+  <title>AV Signal Lab</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="brand">
+      <h1>AV Signal Lab</h1>
+      <p>Signal chain optimizer</p>
+    </div>
+    <div class="nav-item active" data-tab="setup">My Setup</div>
+    <div class="nav-item" data-tab="analyzer">Config Analyzer</div>
+    <div class="nav-item" data-tab="backups">Backups</div>
+    <div class="nav-item" data-tab="updates">Firmware Updates</div>
+    <div class="nav-item" data-tab="manuals">Specs &amp; Manuals</div>
+    <div class="nav-item" data-tab="live">Live VRROOM <span class="tag">BETA</span></div>
+    <div class="nav-item" data-tab="reference">EDID Reference</div>
+    <div class="sidebar-footer" id="app-info">v2.0.0</div>
+  </nav>
+
+  <main class="main">
+    <!-- ============================================== My Setup -->
+    <section id="tab-setup" class="tab-content active">
+      <h2 class="page-title">My Setup</h2>
+      <p class="page-subtitle">
+        Select your equipment and goals, then generate the best configuration for your signal chain.
+      </p>
+
+      <div class="card">
+        <h3>Equipment</h3>
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="sel-display">Display (projector / TV)</label>
+            <select id="sel-display"><option value="">-- Select --</option></select>
+          </div>
+          <div class="form-group">
+            <label for="sel-hdfury">HDMI processor</label>
+            <select id="sel-hdfury"><option value="">-- Select --</option></select>
+          </div>
+          <div class="form-group">
+            <label for="sel-avr">AV receiver</label>
+            <select id="sel-avr"><option value="">-- Select --</option></select>
+          </div>
+          <div class="form-group">
+            <label for="sel-speakers">Speakers</label>
+            <select id="sel-speakers"><option value="">-- Select --</option></select>
+          </div>
+          <div class="form-group">
+            <label for="sel-screen">Projector screen</label>
+            <select id="sel-screen"><option value="">-- Select --</option></select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Source devices (VRROOM is a 4-input matrix)</label>
+          <div class="check-grid" id="chk-sources"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Media servers</label>
+          <div class="check-grid" id="chk-servers"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Optimization goals</h3>
+        <div class="check-grid" id="chk-goals"></div>
+      </div>
+
+      <button class="btn" id="btn-generate">Generate Recommendations</button>
+      <span id="generate-status" class="muted"></span>
+
+      <div id="setup-results" style="margin-top: 18px; display: none;">
+        <div class="card">
+          <h3>Your setup</h3>
+          <div class="summary-chips" id="setup-summary"></div>
+        </div>
+        <div class="card">
+          <h3>Recommendations</h3>
+          <div id="setup-recs"></div>
+        </div>
+        <div class="card" id="card-vrroom-settings" style="display: none;">
+          <h3>Recommended VRROOM settings</h3>
+          <p class="muted" style="margin-bottom: 10px;">
+            Apply these in the VRROOM web UI, or compare them against your current config in the
+            Config Analyzer tab. Power cycle the VRROOM after changes.
+          </p>
+          <table class="data" id="tbl-vrroom-settings">
+            <thead><tr><th>Setting</th><th>Value</th><th>Why / where</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card" id="card-source-settings" style="display: none;">
+          <h3>Source device settings</h3>
+          <table class="data" id="tbl-source-settings">
+            <thead><tr><th>Setting</th><th>Value</th><th>Device</th><th>Reason</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card" id="card-avr-settings" style="display: none;">
+          <h3>AV receiver settings</h3>
+          <table class="data" id="tbl-avr-settings">
+            <thead><tr><th>Setting</th><th>Value</th><th>Reason</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card" id="card-display-settings" style="display: none;">
+          <h3>Display settings</h3>
+          <table class="data" id="tbl-display-settings">
+            <thead><tr><th>Setting</th><th>Value</th><th>Reason</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================== Config Analyzer -->
+    <section id="tab-analyzer" class="tab-content">
+      <h2 class="page-title">Config Analyzer</h2>
+      <p class="page-subtitle">
+        Open a VRROOM config export (web UI &gt; CONFIG &gt; EXPORT) to find issues and compare it
+        with your recommended setup. Every opened config is automatically backed up.
+      </p>
+
+      <div class="notice blue" id="analyzer-reco-note" style="display: none;">
+        Recommendations from My Setup are loaded - the analyzer will also diff your config against them.
+      </div>
+
+      <button class="btn" id="btn-open-config">Open VRROOM Config...</button>
+      <span id="analyzer-status" class="muted"></span>
+
+      <div id="analyzer-results" style="margin-top: 18px; display: none;">
+        <div class="count-row" id="analyzer-counts"></div>
+        <div class="card">
+          <h3>Issues</h3>
+          <div id="analyzer-issues"></div>
+        </div>
+        <div class="card" id="card-diff" style="display: none;">
+          <h3>Config vs recommended setup</h3>
+          <table class="data" id="tbl-diff">
+            <thead><tr><th>Match</th><th>Setting</th><th>Current</th><th>Recommended</th><th>Where</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="card" id="card-overview" style="display: none;">
+          <h3>Recognized settings in this config</h3>
+          <table class="data" id="tbl-overview">
+            <thead><tr><th>Setting</th><th>Value</th><th>Where in web UI</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <button class="btn secondary" id="btn-save-optimized" style="display: none;">
+          Save Optimized Config...
+        </button>
+      </div>
+    </section>
+
+    <!-- ================================================ Backups -->
+    <section id="tab-backups" class="tab-content">
+      <h2 class="page-title">Backups</h2>
+      <p class="page-subtitle">
+        Versioned local backups of your device configs. Configs opened in the analyzer are backed up
+        automatically; you can also import any config file manually.
+      </p>
+      <button class="btn" id="btn-import-backup">Import Config File...</button>
+      <button class="btn secondary" id="btn-refresh-backups">Refresh</button>
+      <div class="card" style="margin-top: 16px;">
+        <table class="data" id="tbl-backups">
+          <thead><tr><th>Date</th><th>Device</th><th>Note</th><th>Size</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="muted" id="backups-empty" style="display: none;">No backups yet.</p>
+      </div>
+    </section>
+
+    <!-- ================================================ Updates -->
+    <section id="tab-updates" class="tab-content">
+      <h2 class="page-title">Firmware Updates</h2>
+      <p class="page-subtitle">
+        Checks the manufacturer pages for your HDFury VRROOM, Yamaha RX-A4A and Epson LS12000, then
+        links you to the official download. Nothing is installed automatically.
+      </p>
+      <button class="btn" id="btn-check-updates">Check All</button>
+      <span id="updates-status" class="muted"></span>
+      <div id="updates-results" style="margin-top: 16px;"></div>
+    </section>
+
+    <!-- ================================================ Manuals -->
+    <section id="tab-manuals" class="tab-content">
+      <h2 class="page-title">Specs &amp; Manuals</h2>
+      <p class="page-subtitle">
+        Download official manuals and spec sheets for your equipment for offline reference.
+      </p>
+      <div class="card">
+        <table class="data" id="tbl-manuals">
+          <thead><tr><th>Device</th><th>Document</th><th>Status</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- =================================================== Live -->
+    <section id="tab-live" class="tab-content">
+      <h2 class="page-title">Live VRROOM <span class="tag" style="font-size: 0.5em; vertical-align: middle;">BETA</span></h2>
+      <p class="page-subtitle">
+        Read-only connection to your VRROOM over IP. Follows the official protocol exactly
+        (no command header over IP, paced commands, strict timeouts). It can never change a setting.
+      </p>
+
+      <div class="notice">
+        <b>Experimental.</b> This feature only ever sends whitelisted <span class="mono">get</span>
+        commands, one at a time, and aborts on repeated timeouts. If the device ever misbehaves,
+        power cycle the VRROOM and use config file export instead. Writing settings (phase 2) will
+        build on this once reads are proven stable.
+      </div>
+
+      <div class="card">
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="live-host">VRROOM IP address</label>
+            <input type="text" id="live-host" placeholder="192.168.1.100" />
+          </div>
+          <div class="form-group">
+            <label for="live-port">Port (default 2222)</label>
+            <input type="number" id="live-port" value="2222" />
+          </div>
+        </div>
+        <button class="btn" id="btn-live-settings">Read Settings</button>
+        <button class="btn secondary" id="btn-live-status">Read Signal Status</button>
+        <button class="btn secondary" id="btn-live-analyze" style="display: none;">Analyze These Settings</button>
+        <span id="live-status-msg" class="muted"></span>
+      </div>
+
+      <div class="card" id="card-live-results" style="display: none;">
+        <h3>Device responses</h3>
+        <table class="data" id="tbl-live">
+          <thead><tr><th>Query</th><th>Response</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div id="live-errors" class="muted" style="margin-top: 10px;"></div>
+      </div>
+    </section>
+
+    <!-- ============================================== Reference -->
+    <section id="tab-reference" class="tab-content">
+      <h2 class="page-title">EDID Reference</h2>
+      <p class="page-subtitle">EDID modes and Dolby Vision strings for the VRROOM.</p>
+      <div class="card">
+        <h3>EDID modes</h3>
+        <table class="data" id="tbl-edid-modes">
+          <thead><tr><th>Mode</th><th>Description</th><th>Use case</th><th>Command</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Dolby Vision EDID strings</h3>
+        <table class="data" id="tbl-dv-strings">
+          <thead><tr><th>String</th><th>Description</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

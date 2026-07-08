@@ -1,0 +1,37 @@
+{
+  "automix": {
+    "name": "AutoMix (Recommended)",
+    "description": "Combines sink EDID with custom modifications. Best for mixed content.",
+    "use_case": "Default choice for most setups",
+    "dv_support": "Supports LLDV injection",
+    "command": "#vrroom set edidmode automix"
+  },
+  "custom": {
+    "name": "Custom EDID",
+    "description": "Use one of 10 custom EDID slots. Full control over capabilities.",
+    "use_case": "When sink EDID causes issues or specific caps needed",
+    "dv_support": "Depends on custom EDID loaded",
+    "command": "#vrroom set edidmode custom"
+  },
+  "copytx0": {
+    "name": "Copy TX0",
+    "description": "Pass through TX0 sink EDID unmodified",
+    "use_case": "Troubleshooting or when full sink capabilities needed",
+    "dv_support": "Depends on sink",
+    "command": "#vrroom set edidmode copytx0"
+  },
+  "copytx1": {
+    "name": "Copy TX1",
+    "description": "Pass through TX1 sink EDID unmodified",
+    "use_case": "Matrix setups with secondary display",
+    "dv_support": "Depends on sink",
+    "command": "#vrroom set edidmode copytx1"
+  },
+  "fixed": {
+    "name": "Fixed EDID",
+    "description": "Use factory default EDID",
+    "use_case": "Fallback when other modes fail",
+    "dv_support": "Basic HDR only",
+    "command": "#vrroom set edidmode fixed"
+  }
+}

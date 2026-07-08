@@ -1,0 +1,321 @@
+{
+  "yamaha_ypao": {
+    "name": "Yamaha YPAO (Yamaha Parametric Room Acoustic Optimizer)",
+    "manufacturer": "Yamaha",
+    "description": "Automatic room calibration system included with Yamaha AV receivers.",
+    "equipment_needed": [
+      "YPAO microphone (included with receiver)",
+      "Microphone stand or tripod",
+      "Quiet room during measurement"
+    ],
+    "steps": [
+      {
+        "step": 1,
+        "title": "Prepare the Room",
+        "instructions": [
+          "Turn off fans, AC, and other noise sources",
+          "Close windows and doors",
+          "Remove obstacles between speakers and listening position",
+          "Ensure all speakers are connected and powered"
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Position the Microphone",
+        "instructions": [
+          "Place microphone at ear height when seated (typically 3-4 feet)",
+          "Position at main listening position (center of couch)",
+          "Use tripod or mic stand - don't hold by hand",
+          "Point microphone straight up (not toward any speaker)",
+          "Keep at least 3 feet from walls"
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Connect Microphone",
+        "instructions": [
+          "Plug YPAO microphone into YPAO jack on front of receiver",
+          "Ensure secure connection",
+          "Wait for receiver to detect microphone"
+        ]
+      },
+      {
+        "step": 4,
+        "title": "Run YPAO",
+        "instructions": [
+          "Navigate to: Setup > Speaker > YPAO",
+          "Select 'Start' to begin measurement",
+          "Leave the room during measurement (sounds can affect results)",
+          "Wait for all test tones to complete (several minutes)",
+          "Receiver will measure each speaker individually"
+        ]
+      },
+      {
+        "step": 5,
+        "title": "Review Results",
+        "instructions": [
+          "Check for any error messages (speaker wiring, phase issues)",
+          "Review detected speaker configuration",
+          "Verify distances seem reasonable for your room",
+          "Check that no speakers show 'None' unless intentional"
+        ]
+      },
+      {
+        "step": 6,
+        "title": "Apply Settings",
+        "instructions": [
+          "Select the YPAO result to apply (Flat, Front, Natural)",
+          "'Flat' = neutral frequency response (recommended for movies)",
+          "'Natural' = slightly warmer sound",
+          "'Front' = matches surround to front speakers",
+          "Save and exit"
+        ]
+      },
+      {
+        "step": 7,
+        "title": "Optional: Multi-Position Measurement",
+        "instructions": [
+          "For better coverage, run YPAO Multi-Point",
+          "Move microphone to 8 different positions around seating area",
+          "Follow on-screen prompts for each position",
+          "This averages the room response for multiple listeners"
+        ]
+      }
+    ],
+    "common_issues": {
+      "Speaker Phase Error": "Check speaker wire polarity (+/- connections). Swap if necessary.",
+      "No Speaker Detected": "Verify speaker is connected and working. Check wire connections.",
+      "Distance Seems Wrong": "YPAO measures acoustic distance, not physical. Some variation is normal.",
+      "Subwoofer Issues": "Ensure sub is powered on, volume at 50%, crossover set to LFE or highest setting."
+    },
+    "tips": [
+      "Run YPAO after any room changes (furniture, acoustic treatments)",
+      "For subwoofers, set the sub's volume to 50% before calibration",
+      "Use YPAO-RSC (Reflected Sound Control) if available for room reflections",
+      "Consider the Yamaha YPAO app for more detailed results",
+      "Manual fine-tuning after YPAO is acceptable for personal preference"
+    ]
+  },
+  "audyssey": {
+    "name": "Audyssey MultEQ",
+    "manufacturer": "Denon / Marantz",
+    "description": "Automatic room calibration system for Denon and Marantz receivers.",
+    "equipment_needed": [
+      "Audyssey microphone (included with receiver)",
+      "Microphone stand",
+      "Audyssey app (optional, recommended for XT32)"
+    ],
+    "steps": [
+      {
+        "step": 1,
+        "title": "Prepare the Room",
+        "instructions": [
+          "Minimize ambient noise",
+          "Position speakers in final locations",
+          "Set subwoofer volume to 75% (Audyssey will adjust)",
+          "Set subwoofer crossover to maximum/LFE"
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Position Microphone",
+        "instructions": [
+          "Place at primary listening position first",
+          "Ear height when seated",
+          "Use included stand - microphone facing up",
+          "Keep away from surfaces and walls"
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Run Audyssey Setup",
+        "instructions": [
+          "Navigate to: Setup > Speakers > Audyssey Setup",
+          "Select measurement positions (3-8 positions available)",
+          "More positions = better averaging",
+          "Follow prompts to move microphone between measurements"
+        ]
+      },
+      {
+        "step": 4,
+        "title": "Review and Apply",
+        "instructions": [
+          "Check speaker configuration detection",
+          "Apply results",
+          "Choose Audyssey mode: Reference, L/R Bypass, Flat, or Off"
+        ]
+      }
+    ],
+    "common_issues": {
+      "Sub too loud/quiet": "Use Dynamic EQ or adjust sub trim after calibration",
+      "Dialogue unclear": "Try Audyssey Dynamic Volume or increase center level +2dB",
+      "Bass lacking": "Enable Dynamic EQ at -15dB reference level"
+    },
+    "tips": [
+      "Use Audyssey app (MultEQ-X) for curve customization",
+      "Dynamic EQ compensates for low-volume listening",
+      "Consider Dirac Live upgrade for XT32 receivers",
+      "Run calibration when room is at typical viewing temperature"
+    ]
+  },
+  "dirac_live": {
+    "name": "Dirac Live",
+    "manufacturer": "Dirac Research",
+    "description": "Premium room correction available as upgrade for many receivers.",
+    "equipment_needed": [
+      "Dirac Live calibration microphone (UMIK-1 or UMIK-2 recommended)",
+      "Computer running Dirac Live software",
+      "USB cable for microphone",
+      "Measurement stand/tripod"
+    ],
+    "steps": [
+      {
+        "step": 1,
+        "title": "Setup Software",
+        "instructions": [
+          "Download Dirac Live from dirac.com",
+          "Connect USB microphone to computer",
+          "Ensure receiver is on same network as computer",
+          "Launch Dirac Live and detect receiver"
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Measure Room",
+        "instructions": [
+          "Follow app prompts for microphone positions",
+          "9-17 positions around listening area recommended",
+          "Keep microphone at ear height",
+          "Stay out of room during measurements"
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Design Target Curve",
+        "instructions": [
+          "Use default Dirac target or customize",
+          "Adjust bass, treble, and house curve to taste",
+          "Preview before applying",
+          "Save multiple filter slots for different preferences"
+        ]
+      },
+      {
+        "step": 4,
+        "title": "Apply Filters",
+        "instructions": [
+          "Upload filters to receiver",
+          "Select active filter slot on receiver",
+          "A/B test with Dirac on/off"
+        ]
+      }
+    ],
+    "tips": [
+      "Dirac Live is considered superior to Audyssey/YPAO by many enthusiasts",
+      "The UMIK-2 microphone is calibrated and provides better accuracy",
+      "Bass Control (separate license) allows independent sub correction",
+      "Create multiple filter slots for movies vs music"
+    ]
+  },
+  "arc_genesis": {
+    "name": "Anthem ARC Genesis",
+    "manufacturer": "Anthem",
+    "description": "Room correction system for Anthem AV equipment.",
+    "equipment_needed": [
+      "ARC Genesis microphone (included)",
+      "Computer running ARC Genesis software",
+      "USB cable for microphone"
+    ],
+    "steps": [
+      {
+        "step": 1,
+        "title": "Install Software",
+        "instructions": [
+          "Download ARC Genesis from anthemav.com",
+          "Connect microphone via USB",
+          "Connect computer to same network as receiver"
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Run Measurements",
+        "instructions": [
+          "Place microphone at 5 positions minimum",
+          "Cover primary listening area",
+          "ARC calculates room response and corrections"
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Review and Apply",
+        "instructions": [
+          "Examine frequency response graphs",
+          "Adjust target curve if desired",
+          "Upload corrections to receiver"
+        ]
+      }
+    ],
+    "tips": [
+      "ARC Genesis provides detailed measurement graphs",
+      "One of the most transparent room correction systems",
+      "Quick Measure option for simple setups"
+    ]
+  },
+  "manual_speaker_setup": {
+    "name": "Manual Speaker Setup (No Room Correction)",
+    "manufacturer": "Universal",
+    "description": "Basic speaker setup without automatic room correction.",
+    "equipment_needed": [
+      "Tape measure",
+      "SPL meter (phone app works: NIOSH SLM, Sound Meter)",
+      "Test tones (pink noise, available on YouTube or streaming)"
+    ],
+    "steps": [
+      {
+        "step": 1,
+        "title": "Measure Distances",
+        "instructions": [
+          "Measure from each speaker to primary listening position",
+          "Use straight-line distance (not along floor)",
+          "Enter distances in receiver's speaker setup menu",
+          "This ensures proper time alignment for all channels"
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Set Crossover Frequencies",
+        "instructions": [
+          "Small bookshelf speakers: 80-100Hz crossover",
+          "Floor-standing speakers: 40-80Hz (or set to Large)",
+          "Center channel: Usually 80Hz",
+          "Subwoofer: Set sub's crossover to LFE/max, let receiver manage"
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Level Matching",
+        "instructions": [
+          "Use receiver's test tone generator",
+          "Measure each speaker with SPL meter at listening position",
+          "Adjust trim so all speakers read same level (75dB reference)",
+          "Do NOT adjust subwoofer by ear - use meter"
+        ]
+      },
+      {
+        "step": 4,
+        "title": "Subwoofer Phase",
+        "instructions": [
+          "Play bass-heavy content",
+          "Flip sub phase between 0\u00b0 and 180\u00b0",
+          "Choose setting with MORE bass at listening position",
+          "Some subs have variable phase (0-180\u00b0) for fine tuning"
+        ]
+      }
+    ],
+    "tips": [
+      "Reference level for movies is 85dB (main channels) / 95dB (LFE)",
+      "Phone SPL apps are adequate for level matching",
+      "Trust measurements over your ears for setup",
+      "Reposition speakers before adding acoustic treatment"
+    ]
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "edidmode": {
+    "name": "EDID Mode",
+    "menu_path": "Vrroom Web UI > EDID > MODE",
+    "tab": "EDID",
+    "values": {
+      "automix": "AutoMix (Recommended)",
+      "custom": "Custom EDID",
+      "fixed": "Fixed",
+      "copytx0": "Copy TX0",
+      "copytx1": "Copy TX1"
+    },
+    "description": "How EDID is generated for connected sources"
+  },
+  "ediddvflag": {
+    "name": "Dolby Vision EDID Flag",
+    "menu_path": "Vrroom Web UI > EDID > DV FLAG",
+    "tab": "EDID",
+    "values": {
+      "on": "Enabled",
+      "off": "Disabled"
+    },
+    "description": "Include Dolby Vision capability in EDID"
+  },
+  "ediddvmode": {
+    "name": "Dolby Vision Mode",
+    "menu_path": "Vrroom Web UI > EDID > DV MODE",
+    "tab": "EDID",
+    "values": {
+      "0": "LG C1 (Standard)",
+      "1": "Custom",
+      "2": "Remove DV"
+    },
+    "description": "Which DV profile to advertise"
+  },
+  "edidhdrflag": {
+    "name": "HDR EDID Flag",
+    "menu_path": "Vrroom Web UI > EDID > HDR FLAG",
+    "tab": "EDID",
+    "values": {
+      "on": "Enabled",
+      "off": "Disabled"
+    },
+    "description": "Include HDR capability in EDID"
+  },
+  "edidhdrmode": {
+    "name": "HDR Mode",
+    "menu_path": "Vrroom Web UI > EDID > HDR MODE",
+    "tab": "EDID",
+    "values": {
+      "0": "HDR10 only",
+      "1": "HDR10 + HLG",
+      "2": "HDR10+",
+      "3": "HDR10+ + HLG",
+      "4": "Remove HDR"
+    },
+    "description": "Which HDR formats to advertise in EDID"
+  },
+  "hdrcustom": {
+    "name": "Custom HDR Injection",
+    "menu_path": "Vrroom Web UI > SIGNAL > HDR CUSTOM",
+    "tab": "SIGNAL",
+    "values": {
+      "on": "Enabled",
+      "off": "Disabled"
+    },
+    "description": "Inject custom HDR metadata (auto-disables under VRR)"
+  },
+  "lldv": {
+    "name": "LLDV (Low Latency DV)",
+    "menu_path": "Vrroom Web UI > EDID > LLDV",
+    "tab": "EDID",
+    "values": {
+      "on": "Enabled",
+      "off": "Disabled"
+    },
+    "description": "Enable LLDV conversion for non-DV displays"
+  },
+  "unmutedelay": {
+    "name": "Audio Unmute Delay",
+    "menu_path": "Vrroom Web UI > AUDIO > UNMUTE DELAY",
+    "tab": "AUDIO",
+    "values": "0-20 (x100ms, e.g., 5 = 500ms)",
+    "description": "Delay before unmuting audio after format change to prevent pops"
+  },
+  "vrr": {
+    "name": "VRR (Variable Refresh Rate)",
+    "menu_path": "Vrroom Web UI > SIGNAL > VRR",
+    "tab": "SIGNAL",
+    "values": {
+      "on": "Enabled",
+      "off": "Disabled",
+      "force": "Force On"
+    },
+    "description": "Variable Refresh Rate passthrough or injection"
+  },
+  "allm": {
+    "name": "ALLM (Auto Low Latency Mode)",
+    "menu_path": "Vrroom Web UI > SIGNAL > ALLM",
+    "tab": "SIGNAL",
+    "values": {
+      "on": "Enabled",
+      "off": "Disabled",
+      "force": "Force On"
+    },
+    "description": "Auto Low Latency Mode passthrough or injection"
+  },
+  "downscale": {
+    "name": "Downscale Output",
+    "menu_path": "Vrroom Web UI > SIGNAL > DOWNSCALE",
+    "tab": "SIGNAL",
+    "values": {
+      "off": "Disabled (native)",
+      "1080p": "1080p",
+      "4k": "4K"
+    },
+    "description": "Downscale output resolution"
+  },
+  "frl": {
+    "name": "Fixed Rate Link (HDMI 2.1)",
+    "menu_path": "Vrroom Web UI > SIGNAL > FRL MODE",
+    "tab": "SIGNAL",
+    "values": {
+      "auto": "Auto",
+      "off": "Disabled (TMDS only)"
+    },
+    "description": "HDMI 2.1 FRL mode for high bandwidth"
+  },
+  "earc": {
+    "name": "eARC Mode",
+    "menu_path": "Vrroom Web UI > AUDIO > eARC",
+    "tab": "AUDIO",
+    "values": {
+      "on": "Enabled",
+      "off": "Disabled"
+    },
+    "description": "Enhanced Audio Return Channel"
+  },
+  "audioout": {
+    "name": "Audio Output Mode",
+    "menu_path": "Vrroom Web UI > AUDIO > OUTPUT",
+    "tab": "AUDIO",
+    "values": {
+      "off": "Disabled",
+      "spdif": "S/PDIF",
+      "analog": "Analog",
+      "all": "All"
+    },
+    "description": "Audio extraction output"
+  }
+}

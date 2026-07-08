@@ -37,3 +37,8 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Node / Electron
+node_modules/
+release/
+*.log

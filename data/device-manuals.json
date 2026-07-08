@@ -1,0 +1,56 @@
+{
+  "epson_eh_ls12000b": {
+    "manual_url": "https://files.support.epson.com/docid/cpd5/cpd59971.pdf",
+    "quick_start_url": "https://files.support.epson.com/docid/cpd5/cpd59972.pdf",
+    "settings_screenshots": {
+      "hdmi_signal": "/static/manuals/epson_ls12000b_hdmi_signal.png",
+      "hdr_setting": "/static/manuals/epson_ls12000b_hdr.png"
+    }
+  },
+  "jvc_dla_nz8": {
+    "manual_url": "https://www.jvc.com/usa/projectors/instruction-manual/",
+    "settings_screenshots": {}
+  },
+  "yamaha_rx_a4a": {
+    "manual_url": "https://usa.yamaha.com/files/download/other_assets/7/1324417/RX-A4A_A6A_A8A_om_U_En.pdf",
+    "quick_start_url": "https://usa.yamaha.com/files/download/other_assets/7/1324418/RX-A4A_A6A_A8A_qg_U_En.pdf",
+    "settings_screenshots": {
+      "hdmi_enhanced": "/static/manuals/yamaha_rxa4a_hdmi_enhanced.png",
+      "ypao": "/static/manuals/yamaha_rxa4a_ypao.png"
+    }
+  },
+  "denon_avr_x3800h": {
+    "manual_url": "https://manuals.denon.com/AVRX3800H/NA/EN/",
+    "settings_screenshots": {}
+  },
+  "nvidia_shield_pro": {
+    "manual_url": "https://www.nvidia.com/en-us/shield/support/shield-tv/",
+    "settings_screenshots": {
+      "display_settings": "/static/manuals/shield_display_settings.png",
+      "match_content": "/static/manuals/shield_match_content.png"
+    }
+  },
+  "apple_tv_4k": {
+    "manual_url": "https://support.apple.com/guide/tv/welcome/tvos",
+    "settings_screenshots": {}
+  },
+  "xbox_series_x": {
+    "manual_url": "https://support.xbox.com/help/hardware-network/console/xbox-series-x-s-manual",
+    "settings_screenshots": {
+      "video_modes": "/static/manuals/xbox_video_modes.png"
+    }
+  },
+  "ps5": {
+    "manual_url": "https://manuals.playstation.net/document/en/ps5/",
+    "settings_screenshots": {}
+  },
+  "vrroom": {
+    "manual_url": "https://www.hdfury.com/docs/HDfuryVRRoom.pdf",
+    "firmware_url": "https://www.hdfury.com/firmware/",
+    "settings_screenshots": {
+      "edid_tab": "/static/manuals/vrroom_edid_tab.png",
+      "signal_tab": "/static/manuals/vrroom_signal_tab.png",
+      "audio_tab": "/static/manuals/vrroom_audio_tab.png"
+    }
+  }
+}
