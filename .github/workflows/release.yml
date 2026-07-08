@@ -46,10 +46,19 @@ jobs:
             release/*.exe
           if-no-files-found: error
 
+      - name: Read app version
+        id: version
+        run: |
+          $v = (Get-Content package.json | ConvertFrom-Json).version
+          "version=$v" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        # Runs for v* tag pushes AND manual runs from the Actions tab.
+        # Manual runs create/update the release tagged from package.json.
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.version.outputs.version) }}
           files: release/*.exe
           generate_release_notes: true
           body: |
