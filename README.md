@@ -20,7 +20,27 @@ available from the same codebase; Android/iOS support is planned via a shared-co
 | Write settings directly to the VRROOM | Phase 2 |
 | Android / iOS / macOS / Linux apps | Later phases |
 
-## Running it
+## Download & install (easiest)
+
+Grab the latest installer from the repo's **[Releases page](../../releases)**:
+
+| Your PC | File to download |
+| --- | --- |
+| Windows on ARM (Snapdragon / Surface) | `AV-Signal-Lab-Setup-<version>-arm64.exe` |
+| Windows Intel/AMD | `AV-Signal-Lab-Setup-<version>-x64.exe` |
+| No-install portable | `AV-Signal-Lab-<version>-portable-<arch>.exe` |
+
+Double-click the Setup file — the installer runs **fully automatically**: installs per-user
+(no admin prompt), creates Start Menu + Desktop shortcuts, and launches the app when done.
+
+> The app is not code-signed yet, so Windows SmartScreen may show "Windows protected your PC".
+> Click **More info → Run anyway**.
+
+Releases are built automatically by GitHub Actions whenever a `v*` tag is pushed
+(see `.github/workflows/release.yml`). You can also trigger a build manually from the
+**Actions** tab (workflow_dispatch) and download the installers from the run's artifacts.
+
+## Running from source
 
 Requires [Node.js](https://nodejs.org/) (LTS). No Visual Studio Build Tools, no compilers —
 the app has zero native modules, so it builds cleanly on Windows ARM64.
