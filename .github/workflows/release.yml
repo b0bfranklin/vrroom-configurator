@@ -14,12 +14,12 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -29,6 +29,9 @@ jobs:
         run: npm test
 
       - name: Build Windows installers (x64 + ARM64)
+        # The dist scripts pass --publish never: the GitHub Release below is
+        # created by the release action, not by electron-builder (which would
+        # otherwise demand a GH_TOKEN and fail).
         run: npm run dist:win
         env:
           # No code signing certificate - build unsigned

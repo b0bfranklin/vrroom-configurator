@@ -18,6 +18,7 @@ available from the same codebase; Android/iOS support is planned via a shared-co
 | Download official specs & manuals for offline reference | Phase 1 |
 | **Read-only** live connection to the VRROOM over IP (spec-compliant, whitelisted `get` commands only) | Phase 1 (beta) |
 | Write settings directly to the VRROOM | Phase 2 |
+| Supply-chain hardening for public release (see below) | Phase 3 |
 | Android / iOS / macOS / Linux apps | Later phases |
 
 ## Download & install (easiest)
@@ -116,6 +117,36 @@ Phase 2 (writing settings) will build on this once reads are proven stable on re
 ├── VRRoom_FW_63/      # VRROOM firmware docs + RS232/IP command reference
 └── docs/              # VRROOM manual and guides
 ```
+
+## Security & supply chain (Phase 3 - "go live / public release")
+
+Already in place:
+
+- **Zero native modules** - nothing is compiled from source at install time
+- **Committed lockfile** + `npm ci` in CI, so builds use exact pinned dependency versions
+- **Dependabot** watches npm dependencies and GitHub Actions weekly
+- Sandboxed renderer (`contextIsolation`, no Node APIs in the UI), strict CSP, and a
+  read-only whitelist for all device communication
+- Update checks are notify-and-link only - the app never downloads or executes firmware
+
+Planned for the public release:
+
+- **Code signing** of the Windows installers (removes the SmartScreen warning and
+  guarantees the binaries came from this project)
+- **Build provenance/attestation** (`actions/attest-build-provenance`) and SBOM publication
+  so every release can be traced back to the exact commit and workflow that built it
+- **Dependency review gate** on pull requests and `npm audit` enforcement in CI
+- Pinning GitHub Actions to commit SHAs rather than tags
+- Checksums (`SHA256SUMS`) published alongside every release asset
+
+## Support & community
+
+In-app under **Support & Community**, or directly:
+
+- [HDFury Discord server](https://discord.com/invite/yCRdfPw) (official support)
+- [HDFury support page](https://www.hdfury.com/support/)
+- [AVS Forum - HDFury Vrroom Owners Thread](https://www.avsforum.com/threads/hdfury-vrroom-owners-thread.3228875/)
+- [AVForums - HDFury VRRoom Owners](https://www.avforums.com/threads/hdfury-vrroom-vertex3-owners.2406354/)
 
 ## Target hardware
 

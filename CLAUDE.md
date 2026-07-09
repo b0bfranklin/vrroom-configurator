@@ -16,6 +16,9 @@ optimization:
 
 - **Phase 1 (current)**: Windows app for ARM64 + x64. Read-only live VRROOM access.
 - **Phase 2**: Write configuration changes directly to the VRROOM over IP.
+- **Phase 3 (go live / public release)**: supply-chain hardening - code signing, build
+  provenance/attestation + SBOM, dependency review gate, SHA-pinned actions, release checksums.
+  Dependabot + lockfile + zero-native-modules are already in place; do not regress them.
 - **Later**: Android, iOS, macOS, Linux (share `src/core/` + `data/`; mobile via Capacitor-style shell).
 
 ## Architecture
