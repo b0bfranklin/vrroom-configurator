@@ -552,6 +552,13 @@ $('#btn-live-analyze').addEventListener('click', async () => {
   }
 });
 
+// ---------------------------------------------------------------- support
+
+$('#tab-support').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-url]');
+  if (btn) api.openExternal(btn.dataset.url);
+});
+
 // -------------------------------------------------------------- reference
 
 async function initReference() {
