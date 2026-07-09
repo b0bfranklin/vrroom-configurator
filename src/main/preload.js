@@ -24,6 +24,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // recommendations
   generateRecommendations: (setup) => invoke('recommend:generate', setup),
+  saveSettingsFile: (settings) => invoke('recommend:save-settings-file', { settings }),
 
   // backups
   listBackups: () => invoke('backups:list'),

@@ -95,6 +95,36 @@
             <tbody></tbody>
           </table>
         </div>
+        <div class="card" id="card-apply" style="display: none;">
+          <h3>How to apply these settings</h3>
+          <p class="muted" style="margin-bottom: 12px;">
+            No factory reset is needed for these changes. Three ways, safest first:
+          </p>
+          <ol style="margin: 0 0 14px 20px; line-height: 1.7;">
+            <li><b>Back up first:</b> VRROOM web UI &rarr; <b>CONFIG</b> tab &rarr; <b>Export</b>.
+              Keep that file (or open it in the Config Analyzer tab - it gets backed up
+              automatically in this app).</li>
+            <li><b>Option A - config file:</b> open your export in the <b>Config Analyzer</b> tab,
+              then click <i>Save Config With Recommended Settings</i>. Import the saved file back
+              via the VRROOM web UI (CONFIG &rarr; Import).</li>
+            <li><b>Option B - web UI by hand:</b> change each setting in the table above; the
+              location column tells you exactly which tab and field.</li>
+            <li><b>Option C - telnet commands:</b> paste the commands below into a telnet session
+              to <span class="mono" id="apply-telnet-target">your-vrroom-ip 2222</span>
+              (e.g. PowerShell: <span class="mono">telnet 192.168.x.x 2222</span>).</li>
+            <li><b>Afterwards: power cycle the VRROOM</b> (pull power, wait 10 seconds, reconnect),
+              then verify with the Live VRROOM tab or by re-exporting and re-analyzing.</li>
+          </ol>
+          <div id="apply-commands-wrap" style="display: none;">
+            <div class="mono" id="apply-commands"
+              style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; white-space: pre; overflow-x: auto; margin-bottom: 10px;"></div>
+            <div id="apply-webui-only" class="muted" style="margin-bottom: 10px;"></div>
+          </div>
+          <div class="row-actions">
+            <button class="btn small secondary" id="btn-copy-commands" style="display: none;">Copy Commands</button>
+            <button class="btn small secondary" id="btn-save-settings-file">Save Settings File (JSON)</button>
+          </div>
+        </div>
         <div class="card" id="card-source-settings" style="display: none;">
           <h3>Source device settings</h3>
           <table class="data" id="tbl-source-settings">
@@ -154,9 +184,14 @@
             <tbody></tbody>
           </table>
         </div>
-        <button class="btn secondary" id="btn-save-optimized" style="display: none;">
-          Save Optimized Config...
-        </button>
+        <div class="row-actions">
+          <button class="btn secondary" id="btn-save-optimized" style="display: none;">
+            Save Optimized Config...
+          </button>
+          <button class="btn" id="btn-save-merged" style="display: none;">
+            Save Config With Recommended Settings...
+          </button>
+        </div>
       </div>
     </section>
 

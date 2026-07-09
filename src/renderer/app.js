@@ -184,6 +184,28 @@ function renderRecommendations(result) {
     (result.recommendations || []).map(issueHtml).join('') ||
     '<p class="muted">No recommendations.</p>';
 
+  // Apply instructions + telnet commands
+  const setCmds = result.set_commands || { commands: [], webUiOnly: [] };
+  const hasSettings = Object.keys(result.vrroom_settings || {}).length > 0;
+  $('#card-apply').style.display = hasSettings ? 'block' : 'none';
+  if (setCmds.commands.length) {
+    $('#apply-commands-wrap').style.display = 'block';
+    $('#apply-commands').textContent = setCmds.commands.map((c) => c.ip).join('\n');
+    $('#btn-copy-commands').style.display = 'inline-block';
+  } else {
+    $('#apply-commands-wrap').style.display = 'none';
+    $('#btn-copy-commands').style.display = 'none';
+  }
+  if (setCmds.webUiOnly && setCmds.webUiOnly.length) {
+    $('#apply-webui-only').textContent =
+      'Web UI only (no IP command exists for these): ' +
+      setCmds.webUiOnly.map((w) => `${w.key} = ${w.value}`).join(', ');
+  } else {
+    $('#apply-webui-only').textContent = '';
+  }
+  const savedHost = localStorage.getItem('avsl_live_host');
+  if (savedHost) $('#apply-telnet-target').textContent = `${savedHost} 2222`;
+
   const vs = result.vrroom_settings_detailed || [];
   $('#card-vrroom-settings').style.display = vs.length ? 'block' : 'none';
   $('#tbl-vrroom-settings tbody').innerHTML = vs
@@ -236,6 +258,18 @@ function renderRecommendations(result) {
 
 // -------------------------------------------------------- config analyzer
 
+$('#btn-copy-commands').addEventListener('click', () => {
+  navigator.clipboard.writeText($('#apply-commands').textContent).then(() => {
+    $('#btn-copy-commands').textContent = 'Copied!';
+    setTimeout(() => ($('#btn-copy-commands').textContent = 'Copy Commands'), 1500);
+  });
+});
+
+$('#btn-save-settings-file').addEventListener('click', async () => {
+  if (!state.lastRecommendation) return;
+  await api.saveSettingsFile(state.lastRecommendation.vrroom_settings);
+});
+
 $('#btn-open-config').addEventListener('click', async () => {
   $('#analyzer-status').innerHTML = '<span class="spinner"></span>Analyzing...';
   const recommended = state.lastRecommendation ? state.lastRecommendation.vrroom_settings : null;
@@ -250,6 +284,22 @@ $('#btn-open-config').addEventListener('click', async () => {
 
   state.lastAnalysis = res;
   renderAnalysis(res.analysis, res.diff, res.file);
+
+  // Offer the merged (export + recommended settings) config for re-import
+  const mergedBtn = $('#btn-save-merged');
+  if (res.mergedConfig) {
+    mergedBtn.style.display = 'inline-block';
+    mergedBtn.onclick = async () => {
+      const saveRes = await api.saveOptimizedConfig(res.mergedConfig);
+      if (saveRes.success && saveRes.file) {
+        $('#analyzer-status').textContent =
+          `Saved: ${saveRes.file}. Import via VRROOM web UI (CONFIG > Import), then power cycle.`;
+      }
+    };
+  } else {
+    mergedBtn.style.display = 'none';
+  }
+
   $('#analyzer-status').textContent = `Backed up automatically (${res.backup.filename})`;
   refreshBackups();
 });
@@ -443,20 +493,27 @@ async function refreshManuals() {
     .map(
       (m) => `<tr>
         <td><b>${esc(nameOf(m.device_id))}</b></td>
-        <td>${esc(m.kind === 'quick_start' ? 'Quick start guide' : 'User manual')}
+        <td>${esc(m.kind === 'support' ? 'Support page (manuals & downloads)' : 'User manual (PDF)')}
           <div class="path">${esc(m.url)}</div></td>
         <td>${m.local_path
           ? '<span class="value-green">Downloaded</span>'
-          : '<span class="muted">Not downloaded</span>'}</td>
+          : m.downloadable
+            ? '<span class="muted">Not downloaded</span>'
+            : '<span class="muted">Online only</span>'}</td>
         <td class="row-actions">
           ${m.local_path
             ? `<button class="btn small secondary" data-act="open" data-path="${esc(m.local_path)}">Open</button>`
             : ''}
-          <button class="btn small ${m.local_path ? 'secondary' : ''}" data-act="download"
-            data-device="${esc(m.device_id)}" data-kind="${esc(m.kind)}">
-            ${m.local_path ? 'Re-download' : 'Download'}
-          </button>
+          ${m.downloadable
+            ? `<button class="btn small ${m.local_path ? 'secondary' : ''}" data-act="download"
+                data-device="${esc(m.device_id)}" data-kind="${esc(m.kind)}">
+                ${m.local_path ? 'Re-download' : 'Download'}
+              </button>`
+            : ''}
           <button class="btn small secondary" data-act="visit" data-url="${esc(m.url)}">Open Link</button>
+          ${m.support_url && m.support_url !== m.url
+            ? `<button class="btn small secondary" data-act="visit" data-url="${esc(m.support_url)}">Support Page</button>`
+            : ''}
         </td>
       </tr>`
     )
@@ -587,16 +644,28 @@ async function initReference() {
 // -------------------------------------------------------------- bootstrap
 
 (async function init() {
-  const info = await api.appInfo();
-  if (info.success) {
-    $('#app-info').textContent = `v${info.version} - ${info.platform}/${info.arch}`;
+  // Each section initializes independently so one failure can't blank the rest
+  const steps = [
+    async () => {
+      const info = await api.appInfo();
+      if (info.success) {
+        $('#app-info').textContent = `v${info.version} - ${info.platform}/${info.arch}`;
+      }
+    },
+    async () => {
+      $('#live-host').value = localStorage.getItem('avsl_live_host') || '';
+      $('#live-port').value = localStorage.getItem('avsl_live_port') || '2222';
+    },
+    initSetupTab,
+    initReference,
+    refreshBackups,
+    refreshManuals,
+  ];
+  for (const step of steps) {
+    try {
+      await step();
+    } catch (err) {
+      console.error('Init step failed:', err);
+    }
   }
-
-  $('#live-host').value = localStorage.getItem('avsl_live_host') || '';
-  $('#live-port').value = localStorage.getItem('avsl_live_port') || '2222';
-
-  await initSetupTab();
-  await initReference();
-  refreshBackups();
-  refreshManuals();
 })();

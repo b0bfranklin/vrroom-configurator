@@ -23,12 +23,29 @@ const RESPONSE_TIMEOUT_MS = 2500;
 const COMMAND_GAP_MS = 300;
 const MAX_CONSECUTIVE_TIMEOUTS = 2;
 
-/** Only these read targets may ever be queried. No "set" commands exist here. */
+/**
+ * Only these read targets may ever be queried. No "set" commands exist here.
+ * Every entry is verified against VRRoom_FW_63/vrroom-rs232-ip-251021.txt
+ * ("current set-values can be read with the get-command"). Note: the web UI
+ * settings "unmute delay" / "eARC unmute" are NOT exposed over IP in FW63,
+ * and the HDCP command is "hdcp" (not "hdcpmode").
+ */
 const READ_TARGETS = new Set([
-  'ver', 'fw', 'ipaddr', 'opmode', 'insel', 'inseltx0', 'inseltx1',
+  // routing / mode
+  'opmode', 'insel', 'inseltx0', 'inseltx1', 'autosw',
+  // network
+  'ipaddr', 'dhcp',
+  // EDID block
   'edidmode', 'ediddvflag', 'ediddvmode', 'edidhdrflag', 'edidhdrmode',
-  'edidvrrflag', 'edidallmflag', 'hdcpmode', 'hdrcustom',
-  'unmutedelay', 'earcunmute', 'earcmode', 'audioout', 'autosw',
+  'edidvrrflag', 'edidvrrmode', 'edidallmflag', 'edidallmmode',
+  'edidfrlflag', 'edidfrlmode',
+  // HDCP / HDR / AVI
+  'hdcp', 'hdrcustom', 'hdrdisable', 'avicustom', 'avidisable',
+  // CEC / audio / eARC
+  'cec', 'earcforce', 'mutetx0audio', 'mutetx1audio',
+  'audiochtx0', 'audiochtx1', 'audiochaudout',
+  'audiomodetx0', 'audiomodetx1', 'audiomodeaudout',
+  // signal status
   'status rx0', 'status rx1', 'status tx0', 'status tx1',
   'status tx0sink', 'status tx1sink', 'status aud0', 'status aud1',
   'status audout', 'status spd0', 'status spd1',
@@ -195,11 +212,16 @@ async function readBatch(host, port, targets) {
 /** Standard settings snapshot used by the Live tab and config analysis. */
 const SETTINGS_TARGETS = [
   'edidmode', 'ediddvflag', 'ediddvmode', 'edidhdrflag', 'edidhdrmode',
-  'edidvrrflag', 'edidallmflag', 'hdcpmode', 'hdrcustom',
-  'unmutedelay', 'earcunmute', 'earcmode', 'opmode',
+  'edidvrrflag', 'edidallmflag', 'hdcp', 'hdrcustom',
+  'cec', 'earcforce', 'autosw', 'opmode',
 ];
 
-const STATUS_TARGETS = ['status rx0', 'status tx0', 'status tx0sink', 'status audout'];
+const STATUS_TARGETS = [
+  'status rx0', 'status tx0', 'status tx0sink', 'status audout', 'audiomodeaudout',
+];
+
+/** Live command names that differ from the config-export key the analyzer uses. */
+const CONFIG_KEY_ALIASES = { hdcp: 'hdcpmode' };
 
 /**
  * Parse "get X" responses into a config-like object.
@@ -217,7 +239,9 @@ function parseSettingsResults(results) {
     } else if (raw.toLowerCase().startsWith(target)) {
       value = raw.slice(target.length).trim();
     }
-    config[target] = value.trim();
+    value = value.trim();
+    config[target] = value;
+    if (CONFIG_KEY_ALIASES[target]) config[CONFIG_KEY_ALIASES[target]] = value;
   }
   return config;
 }

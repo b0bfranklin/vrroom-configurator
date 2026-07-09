@@ -8,6 +8,7 @@ const fs = require('fs');
 const data = require('../core/data');
 const { ConfigAnalyzer, compareWithRecommended } = require('../core/configAnalyzer');
 const { RecommendationEngine } = require('../core/recommendations');
+const { toSetCommands } = require('../core/commands');
 const { BackupManager } = require('./backups');
 const { ManualLibrary } = require('./manuals');
 const updates = require('./updates');
@@ -94,6 +95,11 @@ function registerIpc() {
       const diff = recommendedSettings
         ? compareWithRecommended(config, recommendedSettings)
         : null;
+      // Full config with the recommended settings merged in - safe to
+      // re-import because it starts from the device's own export.
+      const mergedConfig = recommendedSettings
+        ? { ...config, ...recommendedSettings, _merged_by: 'AV Signal Lab', _merged_date: new Date().toISOString() }
+        : null;
 
       // Auto-backup every config the user opens
       const backup = backups.save({
@@ -104,7 +110,7 @@ function registerIpc() {
         sourceFile: path.basename(filePath),
       });
 
-      return ok({ file: filePath, config, analysis, diff, backup });
+      return ok({ file: filePath, config, analysis, diff, mergedConfig, backup });
     } catch (err) {
       return fail(err);
     }
@@ -139,7 +145,32 @@ function registerIpc() {
   ipcMain.handle('recommend:generate', (_e, setup) => {
     try {
       const engine = new RecommendationEngine(setup);
-      return ok({ result: engine.generate() });
+      const result = engine.generate();
+      result.set_commands = toSetCommands(result.vrroom_settings);
+      return ok({ result });
+    } catch (err) {
+      return fail(err);
+    }
+  });
+
+  ipcMain.handle('recommend:save-settings-file', async (_e, { settings }) => {
+    try {
+      const result = await dialog.showSaveDialog(mainWindow, {
+        title: 'Save recommended VRROOM settings',
+        defaultPath: 'vrroom_recommended_settings.json',
+        filters: [{ name: 'JSON', extensions: ['json'] }],
+      });
+      if (result.canceled || !result.filePath) return ok({ canceled: true });
+      const payload = {
+        _note:
+          'Recommended settings from AV Signal Lab. This is NOT a full VRROOM export - ' +
+          'to build an importable file, open your device export in the Config Analyzer ' +
+          'and use "Save Config With Recommended Settings".',
+        _generated: new Date().toISOString(),
+        ...settings,
+      };
+      fs.writeFileSync(result.filePath, JSON.stringify(payload, null, 2));
+      return ok({ file: result.filePath });
     } catch (err) {
       return fail(err);
     }
