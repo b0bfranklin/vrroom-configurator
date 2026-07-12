@@ -82,15 +82,18 @@ const CHECKERS = {
   },
   yamaha_rx_a4a: {
     device: 'Yamaha RX-A4A',
-    page: 'https://usa.yamaha.com/support/updates/rx-a4a_avantage.html',
-    fallbackPage: 'https://usa.yamaha.com/support/updates/index.html',
+    // Shared firmware page for the RX-A8A/A6A/A4A family (verified July 2026)
+    page: 'https://usa.yamaha.com/support/updates/rx-a8a_rx-a6a_rx-a4a_firm.html',
+    fallbackPage: 'https://usa.yamaha.com/support/updates/index.html?c=audio_visual',
     notes:
-      'Yamaha AVRs can update directly from the receiver: Setup > Network > Network Update. ' +
-      'Or download the file from the Yamaha support page and update via USB.',
+      'Easiest: update directly on the receiver via Setup > Network > Network Update. ' +
+      'Check your current version under Setup > Firmware Update on the front panel. ' +
+      'Alternatively download from the Yamaha page and update via USB.',
     parse(html) {
+      // Yamaha titles the page "... Firmware Update Ver.2.24"
       const patterns = [
+        /Ver\.?\s*([\d]+\.[\d]+)/i,
         /firmware\s*version\s*[:\s]*([\d.]+)/i,
-        /version\s*([\d]+\.[\d]+)/i,
       ];
       for (const re of patterns) {
         const m = html.match(re);
@@ -101,11 +104,14 @@ const CHECKERS = {
   },
   epson_ls12000: {
     device: 'Epson EH-LS12000B',
-    page: 'https://www.epson.eu/en_EU/support/sc/epson-eh-ls12000b/s/s1740',
-    fallbackPage: 'https://epson.com/Support/Projectors/Home-Theater-Series/Epson-Pro-Cinema-LS12000/s/SPT_V11HA47020',
+    // Official Epson Europe support page for the EH-LS12000B (verified July 2026)
+    page: 'https://www.epson.eu/en_EU/support/sc/epson-eh-ls12000b/s/s2024',
+    fallbackPage: 'https://support.epson.net/setupnavi/?LG2=EN&OSC=ARD&MKN=EH-LS12000B&PINF=support',
     notes:
-      'Download the firmware update tool from the Epson support page for your region. ' +
-      'The projector updates via USB stick or the Epson firmware updater over USB cable.',
+      'Open the Drivers & Software section of the Epson support page for firmware. ' +
+      'The projector updates via a FAT32 USB stick: copy the firmware file to the stick, ' +
+      'insert it in the projector USB-A port and follow the on-screen procedure. ' +
+      'Check your current version under Menu > Info.',
     parse(html) {
       const patterns = [
         /firmware[^0-9]{0,40}([\d]+\.[\d]+(?:\.[\d]+)?)/i,

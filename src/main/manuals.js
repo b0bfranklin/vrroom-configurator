@@ -73,22 +73,34 @@ class ManualLibrary {
     this.manuals = deviceManuals || {};
   }
 
-  /** All known manual sources, with local availability flags. */
+  /**
+   * All known manual sources, with local availability flags.
+   * Only direct PDF links are downloadable; support pages are link-only.
+   */
   list() {
     const entries = [];
     for (const [deviceId, info] of Object.entries(this.manuals)) {
-      const urls = {};
-      if (info.manual_url) urls.manual = info.manual_url;
-      if (info.quick_start_url) urls.quick_start = info.quick_start_url;
-      for (const [kind, url] of Object.entries(urls)) {
-        const localName = `${deviceId}_${kind}${extensionOf(url)}`;
+      if (info.manual_url) {
+        const localName = `${deviceId}_manual${extensionOf(info.manual_url)}`;
         const localPath = path.join(this.dir, localName);
         entries.push({
           device_id: deviceId,
-          kind,
-          url,
+          kind: 'manual',
+          url: info.manual_url,
+          downloadable: info.manual_url.toLowerCase().endsWith('.pdf'),
+          support_url: info.support_url || null,
           local_path: fs.existsSync(localPath) ? localPath : null,
           local_name: localName,
+        });
+      } else if (info.support_url) {
+        entries.push({
+          device_id: deviceId,
+          kind: 'support',
+          url: info.support_url,
+          downloadable: false,
+          support_url: info.support_url,
+          local_path: null,
+          local_name: null,
         });
       }
     }
@@ -98,13 +110,15 @@ class ManualLibrary {
   async download(deviceId, kind) {
     const info = this.manuals[deviceId];
     if (!info) throw new Error(`No manual sources known for ${deviceId}`);
-    const url = kind === 'quick_start' ? info.quick_start_url : info.manual_url;
-    if (!url) throw new Error(`No ${kind} URL for ${deviceId}`);
+    const url = info.manual_url;
+    if (!url || !url.toLowerCase().endsWith('.pdf')) {
+      throw new Error(`${deviceId} has no direct PDF - use the support page link instead`);
+    }
 
-    const localName = `${deviceId}_${kind}${extensionOf(url)}`;
+    const localName = `${deviceId}_manual${extensionOf(url)}`;
     const destPath = path.join(this.dir, localName);
     const result = await downloadFile(url, destPath);
-    return { device_id: deviceId, kind, ...result };
+    return { device_id: deviceId, kind: 'manual', ...result };
   }
 }
 

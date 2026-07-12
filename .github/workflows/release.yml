@@ -71,9 +71,9 @@ jobs:
 
             | Your PC | File |
             | --- | --- |
-            | Windows on ARM (Snapdragon / Surface) | `AV-Signal-Lab-Setup-*-arm64.exe` |
-            | Windows Intel/AMD | `AV-Signal-Lab-Setup-*-x64.exe` |
-            | No-install (run from anywhere) | `AV-Signal-Lab-*-portable-*.exe` |
+            | Windows on ARM (Snapdragon / Surface) | `AV-Signal-Lab-<version>-arm64.exe` |
+            | Windows Intel/AMD | `AV-Signal-Lab-<version>-x64.exe` |
+            | No-install portable (Intel/AMD) | `AV-Signal-Lab-<version>-portable-x64.exe` |
 
             ### Install
 

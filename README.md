@@ -27,9 +27,9 @@ Grab the latest installer from the repo's **[Releases page](../../releases)**:
 
 | Your PC | File to download |
 | --- | --- |
-| Windows on ARM (Snapdragon / Surface) | `AV-Signal-Lab-Setup-<version>-arm64.exe` |
-| Windows Intel/AMD | `AV-Signal-Lab-Setup-<version>-x64.exe` |
-| No-install portable | `AV-Signal-Lab-<version>-portable-<arch>.exe` |
+| Windows on ARM (Snapdragon / Surface) | `AV-Signal-Lab-<version>-arm64.exe` |
+| Windows Intel/AMD | `AV-Signal-Lab-<version>-x64.exe` |
+| No-install portable (Intel/AMD) | `AV-Signal-Lab-<version>-portable-x64.exe` |
 
 Double-click the Setup file — the installer runs **fully automatically**: installs per-user
 (no admin prompt), creates Start Menu + Desktop shortcuts, and launches the app when done.

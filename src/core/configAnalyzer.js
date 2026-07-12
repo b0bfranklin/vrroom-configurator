@@ -184,20 +184,22 @@ class ConfigAnalyzer {
   }
 
   checkHdcpSettings() {
-    const hdcpMode = this.getStr('hdcpmode', 'auto');
+    // Config exports use "hdcpmode"; the IP protocol uses "hdcp"
+    const key = 'hdcpmode' in this.config ? 'hdcpmode' : 'hdcp';
+    const hdcpMode = this.getStr(key, 'auto');
 
     if (hdcpMode !== 'auto') {
       this.addIssue(
         SEVERITY.INFO,
         'Manual HDCP Mode',
         `HDCP is set to '${hdcpMode}'. Auto mode is recommended unless troubleshooting.`,
-        'hdcpmode', hdcpMode, 'auto'
+        key, hdcpMode, 'auto'
       );
     }
   }
 
   checkCecSettings() {
-    if (this.config.cecenabled) {
+    if (this.config.cecenabled || this.getStr('cec') === 'on') {
       this.recommendations.push({
         title: 'CEC Enabled',
         description: 'CEC can add latency on input switches. Disable if not using TV/AVR power control features.',

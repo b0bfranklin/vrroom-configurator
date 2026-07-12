@@ -147,5 +147,47 @@
       "all": "All"
     },
     "description": "Audio extraction output"
+  },
+  "hdcp": {
+    "name": "HDCP Level",
+    "menu_path": "Vrroom Web UI > CONFIG > HDCP",
+    "tab": "CONFIG",
+    "values": {
+      "14": "HDCP 1.4",
+      "22": "HDCP 2.2",
+      "auto": "Auto (Recommended)"
+    },
+    "description": "HDCP level negotiated with sources (IP command: hdcp)"
+  },
+  "cec": {
+    "name": "CEC",
+    "menu_path": "Vrroom Web UI > CONFIG > CEC",
+    "tab": "CONFIG",
+    "values": {
+      "on": "Enabled",
+      "off": "Disabled"
+    },
+    "description": "HDMI-CEC engine - can add latency on input switches"
+  },
+  "earcforce": {
+    "name": "eARC Force Mode",
+    "menu_path": "Vrroom Web UI > AUDIO > eARC FORCE",
+    "tab": "AUDIO",
+    "values": {
+      "auto": "Auto (Recommended)",
+      "earc": "Force eARC",
+      "hdmi": "Force HDMI audio"
+    },
+    "description": "How eARC audio extraction is negotiated"
+  },
+  "autosw": {
+    "name": "Auto Switching",
+    "menu_path": "Vrroom Web UI > CONFIG > AUTOSW",
+    "tab": "CONFIG",
+    "values": {
+      "on": "Enabled",
+      "off": "Disabled"
+    },
+    "description": "Automatic input switching when a new source becomes active"
   }
 }

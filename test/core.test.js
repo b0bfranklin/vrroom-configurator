@@ -128,10 +128,19 @@ test('recommendation engine: gaming goal respects device VRR capability', () => 
   assert.strictEqual(result.vrroom_settings.unmutedelay, 100);
 });
 
-test('vrroom client: whitelist blocks non-get targets', async () => {
+test('vrroom client: whitelist blocks non-get targets and only spec commands', async () => {
   assert.ok(!vrroom.READ_TARGETS.has('set edidmode automix'));
   assert.ok(vrroom.READ_TARGETS.has('edidmode'));
   assert.ok(vrroom.READ_TARGETS.has('status rx0'));
+  // Spec-verified: FW63 uses "hdcp", and unmute delays are web-UI-only
+  assert.ok(vrroom.READ_TARGETS.has('hdcp'));
+  assert.ok(!vrroom.READ_TARGETS.has('hdcpmode'));
+  assert.ok(!vrroom.READ_TARGETS.has('unmutedelay'));
+  assert.ok(!vrroom.READ_TARGETS.has('earcunmute'));
+  // Every default settings/status target must be whitelisted
+  for (const t of [...vrroom.SETTINGS_TARGETS, ...vrroom.STATUS_TARGETS]) {
+    assert.ok(vrroom.READ_TARGETS.has(t), `whitelist missing ${t}`);
+  }
 
   // readBatch skips non-whitelisted targets without sending anything
   const result = await vrroom.readBatch('127.0.0.1', 1, ['set edidmode custom']);
@@ -142,14 +151,36 @@ test('vrroom client: whitelist blocks non-get targets', async () => {
 test('vrroom client: parses echoed command responses', () => {
   const parsed = vrroom.parseSettingsResults({
     edidmode: 'edidmode automix',
-    unmutedelay: 'unmutedelay 250',
-    hdcpmode: 'auto',
+    hdcp: 'hdcp auto',
+    cec: 'on',
     'status rx0': '4K59.94 422 BT2020 HDR10',
   });
   assert.strictEqual(parsed.edidmode, 'automix');
-  assert.strictEqual(parsed.unmutedelay, '250');
-  assert.strictEqual(parsed.hdcpmode, 'auto');
+  assert.strictEqual(parsed.hdcp, 'auto');
+  assert.strictEqual(parsed.hdcpmode, 'auto', 'hdcp aliased to hdcpmode for the analyzer');
+  assert.strictEqual(parsed.cec, 'on');
   assert.ok(!('status rx0' in parsed), 'status lines excluded from config');
+});
+
+test('set-command generation maps keys to spec commands', () => {
+  const { toSetCommands } = require('../src/core/commands');
+  const { commands, webUiOnly } = toSetCommands({
+    edidmode: 'automix',
+    ediddvflag: 'on',
+    hdcpmode: 'auto',
+    earcmode: 'auto earc',
+    unmutedelay: 200,
+  });
+  const ipCmds = commands.map((c) => c.ip);
+  assert.ok(ipCmds.includes('set edidmode automix'));
+  assert.ok(ipCmds.includes('set ediddvflag on'));
+  assert.ok(ipCmds.includes('set hdcp auto'), 'hdcpmode translates to hdcp command');
+  assert.ok(ipCmds.includes('set earcforce auto'), 'earcmode translates to earcforce');
+  // No command may ever start with "#vrroom" in the IP variant
+  for (const c of commands) assert.ok(!c.ip.startsWith('#vrroom'));
+  // unmutedelay has no IP command in FW63 - flagged, not emitted
+  assert.strictEqual(webUiOnly.length, 1);
+  assert.strictEqual(webUiOnly[0].key, 'unmutedelay');
 });
 
 test('vrroom client: batch against a mock device server', async () => {
