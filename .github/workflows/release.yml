@@ -59,7 +59,7 @@ jobs:
       - name: Publish GitHub Release
         # Runs for v* tag pushes AND manual runs from the Actions tab.
         # Manual runs create/update the release tagged from package.json.
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('v{0}', steps.version.outputs.version) }}
           files: release/*.exe
